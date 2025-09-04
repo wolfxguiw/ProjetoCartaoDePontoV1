@@ -12,11 +12,21 @@ from typing import List
 # --- CONFIGURAÇÃO E CONSTANTES GLOBAIS ---
 app = FastAPI(title="API Conversora de Ponto")
 
+# --- ALTERAÇÃO PARA CORRIGIR A COMUNICAÇÃO DA API ---
+# Define explicitamente quais sites podem "conversar" com a sua API.
+# Isto resolve o erro de CORS de forma segura.
+origins = [
+    "https://cartaodeponto.netlify.app", # O seu site online
+    # Adicione aqui outros endereços para teste local, se necessário, como:
+    # "http://127.0.0.1:5500",
+    # "http://localhost:5500",
+]
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["POST"],
+    allow_methods=["GET", "POST"], # Adicionado GET para pedidos de verificação do navegador
     allow_headers=["*"],
 )
 
@@ -170,11 +180,11 @@ def processar_multiplos_arquivos(arquivos: List[UploadFile]):
                 cell_value = worksheet.cell(row=start_row + i, column=2, value=value)
                 cell_value.number_format = time_format
                 if "Saldo Final" in label:
-                     cell_label.font = bold_font
-                     cell_value.font = bold_font
+                        cell_label.font = bold_font
+                        cell_value.font = bold_font
 
             for col_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
-                 worksheet.column_dimensions[col_letter].width = 22
+                worksheet.column_dimensions[col_letter].width = 22
 
     output.seek(0)
     return output
@@ -193,3 +203,4 @@ async def converter_cartao_ponto(files: List[UploadFile] = File(...)):
         return {"erro": str(e)}, 400
     except Exception as e:
         return {"erro": f"Ocorreu um erro inesperado no servidor: {e}"}, 500
+
