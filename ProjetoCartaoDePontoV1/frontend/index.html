@@ -179,15 +179,23 @@
       }
 
       try {
-      const response = await fetch('[https://projetocartaodepontov1.onrender.com/converter](https://projetocartaodepontov1.onrender.com/converter)', {
-
+        // --- ALTERAÇÃO NECESSÁRIA PARA A COMUNICAÇÃO DA API ---
+        // O URL foi trocado para apontar para o seu serviço online no Render.
+        const response = await fetch('https://projetocartaodepontov1.onrender.com/converter', {
           method: 'POST',
           body: formData,
         });
 
         if (!response.ok) {
-          const errorData = await response.json();
-          throw new Error(errorData.erro || 'Não foi possível processar os arquivos.');
+            // Tenta ler a resposta de erro como JSON, como o backend foi programado para fazer
+            try {
+                const errorData = await response.json();
+                throw new Error(errorData.erro || 'Não foi possível processar os arquivos.');
+            } catch (jsonError) {
+                // Se falhar, significa que o erro não é JSON (provavelmente um erro de CORS ou do servidor)
+                // Isto evita o erro "Unexpected token '<'"
+                throw new Error(`O servidor retornou um erro inesperado (Status: ${response.status}). Verifique as permissões de CORS no backend.`);
+            }
         }
 
         statusDiv.style.color = '#2E7D32';
@@ -229,4 +237,3 @@
 
 </body>
 </html>
-
