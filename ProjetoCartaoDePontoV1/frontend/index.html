@@ -1,239 +1,446 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Conversor de Cartão de Ponto (Múltiplos Arquivos)</title>
-  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
-  <style>
-    body {
-      font-family: 'Roboto', sans-serif;
-      background-color: #f4f7f9;
-      margin: 0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      color: #333;
-    }
-    .container {
-      background: white;
-      padding: 40px 50px;
-      border-radius: 12px;
-      box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
-      width: 100%;
-      max-width: 450px;
-      text-align: center;
-      border-top: 4px solid #0D47A1;
-      animation: fadeIn 0.7s ease-out forwards;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: translateY(25px); }
-      to { opacity: 1; transform: translateY(0); }
-    }
-    h1 {
-      color: #0D47A1;
-      font-size: 1.8rem;
-      font-weight: 700;
-      margin-top: 0;
-      margin-bottom: 15px;
-    }
-    p {
-      color: #555;
-      margin-bottom: 30px;
-      font-size: 1rem;
-    }
-    .form-group {
-      margin-bottom: 25px;
-    }
-    .file-input-label {
-      display: block;
-      padding: 15px 20px;
-      border: 2px dashed #d0dbe5;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-    }
-    .file-input-label:hover {
-      border-color: #0D47A1;
-      background-color: #f7faff;
-    }
-    input[type="file"] {
-      display: none;
-    }
-    .file-name {
-      margin-top: 10px;
-      color: #2E7D32;
-      font-weight: 500;
-    }
-    button {
-      width: 100%;
-      background-color: #0D47A1;
-      color: white;
-      border: none;
-      padding: 15px;
-      font-size: 1.1rem;
-      font-weight: 500;
-      border-radius: 8px;
-      cursor: pointer;
-      transition: background-color 0.3s ease, transform 0.2s ease;
-      position: relative;
-    }
-    button:hover {
-      background-color: #0b3a8a;
-      transform: translateY(-2px);
-    }
-    button:disabled {
-      background-color: #7d9dca;
-      cursor: not-allowed;
-    }
-    button.loading {
-      pointer-events: none;
-      color: transparent;
-    }
-    button.loading::after {
-      content: '';
-      position: absolute;
-      left: 50%;
-      top: 50%;
-      width: 20px;
-      height: 20px;
-      margin-left: -10px;
-      margin-top: -10px;
-      border: 3px solid rgba(255, 255, 255, 0.5);
-      border-top-color: white;
-      border-radius: 50%;
-      animation: spin 0.8s linear infinite;
-    }
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-    #status {
-      margin-top: 20px;
-      font-size: 0.95rem;
-      font-weight: 500;
-      height: 20px;
-      color: #2E7D32;
-    }
-  </style>
-</head>
-<body>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AgroPonto | Intelligence</title>
+    
+    <!-- Tailwind CSS (Estilização Instantânea) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Google Fonts (Inter - A fonte do SaaS moderno) -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Phosphor Icons (Ícones de alta fidelidade) -->
+    <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
-  <div class="container">
-    <h1>Conversor de Ponto</h1>
-    <p>Envie um ou mais arquivos de ponto (.txt) para convertê-los em uma única planilha Excel (.xlsx).</p>
-
-    <form id="upload-form">
-      <div class="form-group">
-        <label for="file-input" class="file-input-label">
-          Clique para selecionar os arquivos
-          <div class="file-name" id="file-name-display"></div>
-        </label>
-        <!-- ATUALIZAÇÃO: Adicionado o atributo "multiple" para permitir vários arquivos -->
-        <input type="file" id="file-input" name="files" accept=".txt" required multiple>
-      </div>
-      <button type="submit" id="submit-button">Converter para Excel</button>
-    </form>
-
-    <div id="status"></div>
-  </div>
-
-  <script>
-    const form = document.getElementById('upload-form');
-    const fileInput = document.getElementById('file-input');
-    const fileNameDisplay = document.getElementById('file-name-display');
-    const statusDiv = document.getElementById('status');
-    const submitButton = document.getElementById('submit-button');
-
-    // ATUALIZAÇÃO: Mostra o número de arquivos selecionados
-    fileInput.addEventListener('change', () => {
-      if (fileInput.files.length > 0) {
-        if (fileInput.files.length === 1) {
-          fileNameDisplay.textContent = fileInput.files[0].name;
-        } else {
-          fileNameDisplay.textContent = `${fileInput.files.length} arquivos selecionados`;
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        brand: { 400: '#38bdf8', 500: '#0ea5e9', 600: '#0284c7' },
+                        dark: { bg: '#0f172a', surface: '#1e293b', border: '#334155' }
+                    },
+                    animation: {
+                        'blob': 'blob 7s infinite',
+                        'slide-up': 'slideUp 0.4s ease-out forwards',
+                    },
+                    keyframes: {
+                        blob: {
+                            '0%': { transform: 'translate(0px, 0px) scale(1)' },
+                            '33%': { transform: 'translate(30px, -50px) scale(1.1)' },
+                            '66%': { transform: 'translate(-20px, 20px) scale(0.9)' },
+                            '100%': { transform: 'translate(0px, 0px) scale(1)' },
+                        },
+                        slideUp: {
+                            '0%': { transform: 'translateY(10px)', opacity: '0' },
+                            '100%': { transform: 'translateY(0)', opacity: '1' },
+                        }
+                    }
+                }
+            }
         }
-      } else {
-        fileNameDisplay.textContent = '';
-      }
-    });
+    </script>
 
-    form.addEventListener('submit', async (e) => {
-      e.preventDefault();
+    <style>
+        /* Estilos Customizados para Glassmorphism Profundo */
+        body { background-color: #0f172a; overflow-y: auto; }
+        
+        .glass-card {
+            background: rgba(30, 41, 59, 0.4);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+        }
 
-      // Validação para garantir que pelo menos um arquivo foi selecionado
-      if (fileInput.files.length === 0) {
-        alert("Por favor, selecione pelo menos um arquivo .txt para continuar.");
-        return;
-      }
+        /* Scrollbar customizada */
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0f172a; }
+        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+    </style>
+</head>
+<body class="relative flex items-center justify-center min-h-screen text-slate-300 selection:bg-brand-500 selection:text-white py-10">
 
-      submitButton.classList.add('loading');
-      submitButton.disabled = true;
-      statusDiv.style.color = '#555';
-      statusDiv.textContent = 'Processando os arquivos...';
+    <!-- Background Ambient Effects (Luzes de fundo) -->
+    <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+    <div class="absolute top-0 -right-4 w-72 h-72 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
-      // ATUALIZAÇÃO: Cria um FormData e adiciona todos os arquivos selecionados
-      const formData = new FormData();
-      for (const file of fileInput.files) {
-        formData.append('files', file); // A chave 'files' deve corresponder ao backend
-      }
+    <!-- Main Container -->
+    <main class="glass-card relative z-10 w-full max-w-[800px] rounded-3xl p-8 m-4 transition-all duration-300 animate-slide-up flex flex-col gap-6">
+        
+        <!-- Header -->
+        <header class="flex items-center justify-between">
+            <div>
+                <div class="flex items-center gap-2 mb-1">
+                    <div class="w-2 h-2 rounded-full bg-brand-400 shadow-[0_0_10px_#38bdf8]"></div>
+                    <h2 class="text-xs font-bold tracking-widest text-brand-400 uppercase">Ferramenta Interna</h2>
+                </div>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Conversor de Ponto</h1>
+            </div>
+            <div class="p-3 bg-white/5 rounded-2xl border border-white/10">
+                <i class="ph ph-files text-2xl text-brand-400"></i>
+            </div>
+        </header>
 
-      try {
-        // --- ALTERAÇÃO NECESSÁRIA PARA A COMUNICAÇÃO DA API ---
-        // O URL foi trocado para apontar para o seu serviço online no Render.
-        const response = await fetch('https://projetocartaodepontov1.onrender.com/converter', {
-          method: 'POST',
-          body: formData,
+        <!-- Formulário de Upload -->
+        <form id="upload-form" class="space-y-6">
+            
+            <!-- Zona de Drop -->
+            <div id="drop-zone" class="group relative border-2 border-dashed border-dark-border rounded-2xl p-10 transition-all duration-300 cursor-pointer hover:border-brand-500 hover:bg-white/5 bg-dark-surface/30 text-center">
+                
+                <input type="file" id="fileInput" name="files" accept=".txt" class="hidden" multiple>
+                
+                <!-- Conteúdo Visual do Drop -->
+                <div class="space-y-4 pointer-events-none">
+                    <div class="w-16 h-16 mx-auto rounded-full bg-dark-bg border border-dark-border flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:border-brand-500/50 transition-transform duration-300">
+                        <i id="upload-icon" class="ph ph-upload-simple text-3xl text-slate-400 group-hover:text-brand-400 transition-colors"></i>
+                    </div>
+                    
+                    <div id="text-content">
+                        <h3 class="text-lg font-medium text-white">Arraste seus arquivos TXT</h3>
+                        <p class="text-sm text-slate-500 mt-1">ou clique para buscar no computador</p>
+                    </div>
+
+                    <!-- Estado: Arquivo Selecionado (Escondido inicialmente) -->
+                    <div id="file-info" class="hidden items-center justify-center gap-3 bg-brand-500/10 py-2 px-4 rounded-lg border border-brand-500/20">
+                        <i class="ph ph-file-text text-brand-400 text-xl"></i>
+                        <span id="filename" class="text-sm text-brand-100 font-medium truncate max-w-[200px]">arquivo.txt</span>
+                        <button type="button" id="clear-file" class="text-slate-400 hover:text-white pointer-events-auto">
+                            <i class="ph ph-x"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Botão de Ação -->
+            <button type="submit" id="submit-btn" disabled class="w-full relative group overflow-hidden rounded-xl bg-brand-600 p-4 font-semibold text-white shadow-lg shadow-brand-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-500 active:scale-[0.98]">
+                <span class="relative z-10 flex items-center justify-center gap-2">
+                    <span id="btn-text">Processar Arquivos</span>
+                    <i id="btn-icon" class="ph ph-arrow-right font-bold group-hover:translate-x-1 transition-transform"></i>
+                </span>
+                <!-- Brilho no hover -->
+                <div class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
+            </button>
+        </form>
+
+        <!-- Container do Preview (Aparece após sucesso) -->
+        <div id="preview-container" class="hidden space-y-6 animate-slide-up">
+            <div class="flex items-center justify-between">
+                <h3 class="text-lg font-semibold text-white flex items-center gap-2">
+                    <i class="ph ph-chart-bar text-brand-400"></i> Resumo Calculado
+                </h3>
+                <span class="text-xs text-slate-500 bg-white/5 px-2 py-1 rounded">Visualização</span>
+            </div>
+            
+            <!-- Grid de Cards de Funcionários (Agora recebe dados reais!) -->
+            <div id="preview-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <!-- Cards serão injetados aqui via JS -->
+            </div>
+
+            <div class="flex gap-3 pt-2">
+                <button id="download-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 group">
+                    <i class="ph ph-download-simple text-xl group-hover:animate-bounce"></i> 
+                    <span>Baixar Excel Completo</span>
+                </button>
+                <button onclick="resetUI()" class="px-6 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all" title="Processar novos arquivos">
+                    <i class="ph ph-arrow-counter-clockwise text-xl"></i>
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="flex items-center justify-between text-xs text-slate-500 border-t border-white/5 pt-6">
+            <span class="flex items-center gap-1.5">
+                <i class="ph-fill ph-shield-check text-emerald-500"></i>
+                Ambiente Seguro
+            </span>
+            <a href="#" class="hover:text-brand-400 transition-colors">Precisa de ajuda?</a>
+        </div>
+    </main>
+
+    <!-- TOAST Notification Container (Avisos flutuantes) -->
+    <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3"></div>
+
+    <script>
+        // Elementos Globais
+        const dropZone = document.getElementById('drop-zone');
+        const fileInput = document.getElementById('fileInput');
+        const fileInfo = document.getElementById('file-info');
+        const textContent = document.getElementById('text-content');
+        const fileNameDisplay = document.getElementById('filename');
+        const clearBtn = document.getElementById('clear-file');
+        const submitBtn = document.getElementById('submit-btn');
+        const uploadIcon = document.getElementById('upload-icon');
+        const btnText = document.getElementById('btn-text');
+        const btnIcon = document.getElementById('btn-icon');
+        const form = document.getElementById('upload-form');
+        
+        const previewContainer = document.getElementById('preview-container');
+        const previewContent = document.getElementById('preview-content');
+        const downloadBtn = document.getElementById('download-btn');
+
+        let currentBase64File = null;
+        let currentFileName = "";
+
+        // --- Event Listeners UI ---
+
+        // Abrir seletor
+        dropZone.addEventListener('click', (e) => {
+            if(e.target !== clearBtn && !clearBtn.contains(e.target)) {
+                fileInput.click();
+            }
         });
 
-        if (!response.ok) {
-            // Tenta ler a resposta de erro como JSON, como o backend foi programado para fazer
+        // Arrastar
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('border-brand-500', 'bg-white/5');
+            uploadIcon.classList.add('text-brand-400', 'scale-110');
+        });
+
+        // Sair
+        dropZone.addEventListener('dragleave', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-brand-500', 'bg-white/5');
+            uploadIcon.classList.remove('text-brand-400', 'scale-110');
+        });
+
+        // Soltar
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('border-brand-500', 'bg-white/5');
+            if (e.dataTransfer.files.length) {
+                const dt = new DataTransfer();
+                for (let i = 0; i < e.dataTransfer.files.length; i++) {
+                    dt.items.add(e.dataTransfer.files[i]);
+                }
+                fileInput.files = dt.files;
+                handleFiles(fileInput.files);
+            }
+        });
+
+        // Selecionar via input
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length) handleFiles(fileInput.files);
+        });
+
+        // Limpar seleção
+        clearBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            resetUI();
+        });
+
+        // Download do arquivo Real
+        downloadBtn.addEventListener('click', () => {
+            if (currentBase64File) {
+                const link = document.createElement('a');
+                link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${currentBase64File}`;
+                link.download = currentFileName || 'Relatorio.xlsx';
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                showToast('Download iniciado com sucesso!', 'success');
+            }
+        });
+
+        function handleFiles(files) {
+            // Verifica extensão simples do primeiro arquivo
+            if(!files[0].name.toLowerCase().endsWith('.txt')) {
+                showToast('Apenas arquivos .txt são permitidos', 'error');
+                return;
+            }
+
+            // UI Update
+            const count = files.length;
+            fileNameDisplay.textContent = count > 1 ? `${count} arquivos selecionados` : files[0].name;
+            textContent.classList.add('hidden');
+            fileInfo.classList.remove('hidden');
+            fileInfo.classList.add('flex');
+            
+            // Ícone muda para sucesso
+            uploadIcon.classList.remove('ph-upload-simple');
+            uploadIcon.classList.add('ph-check-circle', 'text-emerald-400');
+            
+            // Habilita botão
+            submitBtn.disabled = false;
+        }
+
+        function resetUI() {
+            fileInput.value = '';
+            currentBase64File = null;
+            
+            // Troca de telas: Esconde Preview, Mostra Form
+            previewContainer.classList.add('hidden');
+            form.classList.remove('hidden');
+
+            textContent.classList.remove('hidden');
+            fileInfo.classList.add('hidden');
+            fileInfo.classList.remove('flex');
+            uploadIcon.classList.add('ph-upload-simple');
+            uploadIcon.classList.remove('ph-check-circle', 'text-emerald-400');
+            submitBtn.disabled = true;
+            resetButtonState();
+        }
+
+        // --- Lógica de Envio e Processamento ---
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            if (!fileInput.files.length) return;
+
+            const formData = new FormData();
+            
+            // Adiciona TODOS os arquivos com a chave 'files' (plural) que o backend espera
+            for (let i = 0; i < fileInput.files.length; i++) {
+                formData.append('files', fileInput.files[i]);
+            }
+
+            // Estado de Loading
+            setLoading(true);
+
             try {
-                const errorData = await response.json();
-                throw new Error(errorData.erro || 'Não foi possível processar os arquivos.');
-            } catch (jsonError) {
-                // Se falhar, significa que o erro não é JSON (provavelmente um erro de CORS ou do servidor)
-                // Isto evita o erro "Unexpected token '<'"
-                throw new Error(`O servidor retornou um erro inesperado (Status: ${response.status}). Verifique as permissões de CORS no backend.`);
+                // Feedback visual para o usuário
+                updateBtnText('Enviando arquivos...');
+                
+                // === CHAMA O BACKEND REAL AQUI ===
+                // Se rodar localmente com live server, certifique-se da porta (ex: http://127.0.0.1:8000/converter)
+                // Se rodar "python -m uvicorn", a URL relativa /converter funciona se o front estiver sendo servido pelo FastAPI.
+                // Como você está usando arquivos separados (index.html e backend.py), use a URL completa do backend:
+                const API_URL = "http://127.0.0.1:8000/converter"; 
+
+                const response = await fetch(API_URL, {
+                    method: "POST",
+                    body: formData
+                });
+
+                if (!response.ok) {
+                    const err = await response.json();
+                    throw new Error(err.erro || 'Erro no servidor');
+                }
+
+                const data = await response.json();
+                
+                // GERA OS CARDS COM DADOS REAIS DO BACKEND
+                renderPreview(data.preview);
+                
+                // Guarda o arquivo para download
+                currentBase64File = data.file;
+                currentFileName = data.filename;
+
+                // Troca de telas com animação
+                form.classList.add('hidden');
+                previewContainer.classList.remove('hidden');
+                
+                showToast('Cálculo concluído com sucesso!', 'success');
+
+            } catch (error) {
+                console.error(error);
+                showToast(error.message, 'error');
+            } finally {
+                resetButtonState();
+            }
+        });
+
+        function renderPreview(previewData) {
+            previewContent.innerHTML = previewData.map(item => `
+                <div class="bg-white/5 rounded-xl p-5 border border-white/10 hover:border-brand-500/30 transition-all shadow-lg group hover:-translate-y-1">
+                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-white/5">
+                        <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center border border-brand-500/20 group-hover:scale-110 transition-transform">
+                            <i class="ph-fill ph-user text-xl"></i>
+                        </div>
+                        <div>
+                            <h4 class="text-sm font-bold text-white uppercase tracking-wider">${item.funcionario}</h4>
+                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Resumo Mensal</span>
+                        </div>
+                    </div>
+                    
+                    <div class="space-y-3 text-sm">
+                        <div class="flex justify-between items-center group/item">
+                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Total de Horas Normais</span>
+                            <span class="font-mono text-slate-200 bg-white/5 px-2 py-0.5 rounded">${item.normais}</span>
+                        </div>
+                        <div class="flex justify-between items-center group/item">
+                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Total de Horas a Dever</span>
+                            <span class="font-mono text-red-300 ${item.dever !== '00:00' ? 'bg-red-500/10' : ''} px-2 py-0.5 rounded">${item.dever}</span>
+                        </div>
+                        <div class="flex justify-between items-center group/item">
+                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Extras (Comum)</span>
+                            <span class="font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded">${item.extras_comuns}</span>
+                        </div>
+                        <div class="flex justify-between items-center group/item">
+                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Extras (100%)</span>
+                            <span class="font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded">${item.extras_100}</span>
+                        </div>
+                        <div class="pt-3 mt-2 border-t border-dashed border-white/10 flex justify-between items-center">
+                            <span class="font-semibold text-white">Saldo Final</span>
+                            <span class="font-mono font-bold text-lg ${item.saldo.startsWith('-') ? 'text-red-400' : 'text-brand-400'}">${item.saldo}</span>
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        // --- Funções Auxiliares de UI ---
+
+        function setLoading(isLoading) {
+            if(isLoading) {
+                submitBtn.disabled = true;
+                btnIcon.classList.add('hidden');
+                btnText.innerHTML = `<i class="ph ph-spinner animate-spin text-lg"></i> Processando...`;
+                dropZone.classList.add('opacity-50', 'pointer-events-none');
             }
         }
 
-        statusDiv.style.color = '#2E7D32';
-        statusDiv.textContent = 'Sucesso! Iniciando o download...';
-        
-        const blob = await response.blob();
-        const url = window.URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        
-        const contentDisposition = response.headers.get('Content-Disposition');
-        let filename = 'relatorio_consolidado.xlsx';
-        if (contentDisposition) {
-            const filenameMatch = contentDisposition.match(/filename="?(.+)"?/);
-            if (filenameMatch && filenameMatch.length > 1) {
-                filename = filenameMatch[1];
-            }
+        function resetButtonState() {
+            submitBtn.disabled = false;
+            btnIcon.classList.remove('hidden');
+            btnText.textContent = 'Processar Arquivos';
+            dropZone.classList.remove('opacity-50', 'pointer-events-none');
         }
 
-        a.href = url;
-        a.download = filename;
-        document.body.appendChild(a);
-        a.click();
-        a.remove();
-        window.URL.revokeObjectURL(url);
-        
-      } catch (error) {
-        console.error('Falha na operação:', error);
-        statusDiv.style.color = '#D32F2F';
-        statusDiv.textContent = `Erro: ${error.message}`;
-        alert(`Falha ao gerar o relatório: ${error.message}`);
-      } finally {
-        submitButton.classList.remove('loading');
-        submitButton.disabled = false;
-        fileInput.value = '';
-        fileNameDisplay.textContent = '';
-      }
-    });
-  </script>
+        function updateBtnText(text) {
+            btnText.innerHTML = `<i class="ph ph-cpu animate-pulse text-lg"></i> ${text}`;
+        }
 
+        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+        // Sistema de Notificações (Toast)
+        function showToast(message, type = 'success') {
+            const toast = document.createElement('div');
+            
+            // Cores baseadas no tipo
+            const colors = type === 'success' 
+                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
+                : 'bg-red-500/10 border-red-500/20 text-red-400';
+            
+            const icon = type === 'success' ? 'ph-check-circle' : 'ph-warning-circle';
+
+            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-lg transform transition-all duration-300 translate-x-10 opacity-0 ${colors}`;
+            toast.innerHTML = `
+                <i class="ph ${icon} text-xl"></i>
+                <span class="text-sm font-medium">${message}</span>
+            `;
+
+            const container = document.getElementById('toast-container');
+            container.appendChild(toast);
+
+            // Animação de entrada
+            requestAnimationFrame(() => {
+                toast.classList.remove('translate-x-10', 'opacity-0');
+            });
+
+            // Remove automático
+            setTimeout(() => {
+                toast.classList.add('translate-x-10', 'opacity-0');
+                setTimeout(() => toast.remove(), 300);
+            }, 4000);
+        }
+    </script>
 </body>
 </html>
