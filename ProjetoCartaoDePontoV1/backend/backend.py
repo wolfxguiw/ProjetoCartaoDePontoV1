@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 from fastapi import FastAPI, File, UploadFile
-from fastapi.responses import StreamingResponse
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
 import io
 import re
+import base64
 from datetime import datetime, timedelta, date, time
 from openpyxl.styles import Font
 from typing import List
@@ -12,21 +13,19 @@ from typing import List
 # --- CONFIGURAÇÃO E CONSTANTES GLOBAIS ---
 app = FastAPI(title="API Conversora de Ponto")
 
-# --- ALTERAÇÃO PARA CORRIGIR A COMUNICAÇÃO DA API ---
-# Define explicitamente quais sites podem "conversar" com a sua API.
-# Isto resolve o erro de CORS de forma segura.
 origins = [
-    "https://cartaodeponto.netlify.app", # O seu site online
-    # Adicione aqui outros endereços para teste local, se necessário, como:
-    # "http://127.0.0.1:5500",
-    # "http://localhost:5500",
+    "https://cartaodeponto.netlify.app",
+    "http://127.0.0.1:5500",
+    "http://localhost:5500",
+    "http://localhost:3000",
+    "*"
 ]
 
 app.add_middleware(
     CORSMiddleware,
     allow_origins=origins,
     allow_credentials=True,
-    allow_methods=["GET", "POST"], # Adicionado GET para pedidos de verificação do navegador
+    allow_methods=["GET", "POST"],
     allow_headers=["*"],
 )
 
@@ -43,7 +42,21 @@ DIAS_SEMANA = {
     4: 'Sexta-feira', 5: 'Sábado', 6: 'Domingo'
 }
 
-# --- FUNÇÕES ---
+# --- FUNÇÕES AUXILIARES ---
+
+def format_td(td):
+    """Formata timedelta para string HH:MM (Apenas para o Preview visual)"""
+    total_seconds = td.total_seconds()
+    sign = "-" if total_seconds < 0 else "+"
+    total_seconds = abs(total_seconds)
+    # Arredondamento para bater com a visualização aproximada
+    total_minutes = round(total_seconds / 60)
+    hours = int(total_minutes // 60)
+    minutes = int(total_minutes % 60)
+    
+    if hours == 0 and minutes == 0: sign = ""
+    elif sign == "+" and (hours > 0 or minutes > 0): sign = "+" 
+    return f"{sign}{hours:02d}:{minutes:02d}"
 
 def processar_multiplos_arquivos(arquivos: List[UploadFile]):
     """Orquestra todo o processo: parse, detecção de faltas, cálculo e geração do Excel."""
@@ -53,17 +66,21 @@ def processar_multiplos_arquivos(arquivos: List[UploadFile]):
     for arquivo in arquivos:
         conteudo = arquivo.file.read().decode("utf-8")
         arquivo.file.seek(0)
-        padrao_data_hora = re.compile(r'(\d{2}\.\d{2}\.\d{4})\s+(\d{2}:\d{2}:\d{2})')
+        # Regex ajustado para aceitar datas com ponto, barra ou traço (DD.MM.YYYY ou DD/MM/YYYY)
+        padrao_data_hora = re.compile(r'(\d{2}[./-]\d{2}[./-]\d{4})\s+(\d{2}:\d{2}:\d{2})')
         for linha in conteudo.splitlines():
             match = padrao_data_hora.search(linha)
             if match:
                 try:
                     data_str, hora_str = match.groups()
+                    # Normaliza a string da data substituindo / e - por . para o strptime
+                    data_str_norm = data_str.replace('/', '.').replace('-', '.')
+                    
                     info_inicial = linha[:match.start()].split()
                     nome = info_inicial[1] if len(info_inicial) > 1 else 'N/A'
                     dados_consolidados.append({
                         "nome": nome,
-                        "data": datetime.strptime(data_str, "%d.%m.%Y").date(),
+                        "data": datetime.strptime(data_str_norm, "%d.%m.%Y").date(),
                         "hora": datetime.strptime(hora_str, "%H:%M:%S").time()
                     })
                 except (ValueError, IndexError):
@@ -73,17 +90,32 @@ def processar_multiplos_arquivos(arquivos: List[UploadFile]):
         raise ValueError("Nenhum dado válido foi encontrado nos arquivos enviados.")
 
     df_raw = pd.DataFrame(dados_consolidados)
+    
+    # --- PROTEÇÃO CONTRA DUPLICATAS ---
+    # Remove registros duplicados (mesmo nome, data e hora) para evitar dias com 0h trabalhadas
+    df_raw.drop_duplicates(inplace=True)
+    
     df_raw['data'] = pd.to_datetime(df_raw['data'])
 
     # 2. Lógica de Detecção de Faltas e Cálculo de Horas
     relatorio_diario = []
-    min_date = df_raw['data'].min().date()
-    max_date = df_raw['data'].max().date()
-    periodo_completo = pd.date_range(start=min_date, end=max_date)
+    
+    # ATENÇÃO: Não calculamos mais o período global aqui. O cálculo agora é por funcionário.
     todos_funcionarios = df_raw['nome'].unique()
+
+    resumo_preview = [] # Lista para o Frontend
 
     for funcionario in todos_funcionarios:
         df_funcionario_raw = df_raw[df_raw['nome'] == funcionario]
+        
+        # --- CORREÇÃO: CALCULAR PERÍODO INDIVIDUALMENTE ---
+        # Define o início e fim do relatório baseado APENAS nas datas deste funcionário
+        if df_funcionario_raw.empty:
+            continue
+            
+        min_date = df_funcionario_raw['data'].min().date()
+        max_date = df_funcionario_raw['data'].max().date()
+        periodo_completo = pd.date_range(start=min_date, end=max_date)
         
         for data_atual in periodo_completo:
             data_atual_obj = data_atual.date()
@@ -138,69 +170,88 @@ def processar_multiplos_arquivos(arquivos: List[UploadFile]):
     # 3. Geração do Relatório Excel
     output = io.BytesIO()
     with pd.ExcelWriter(output, engine='openpyxl') as writer:
-        df_calculado.sort_values(by=['Funcionário', 'Data'], inplace=True)
-        for funcionario in df_calculado["Funcionário"].unique():
-            df_funcionario = df_calculado[df_calculado["Funcionário"] == funcionario].copy()
+        if not df_calculado.empty:
+            df_calculado.sort_values(by=['Funcionário', 'Data'], inplace=True)
+            for funcionario in df_calculado["Funcionário"].unique():
+                df_funcionario = df_calculado[df_calculado["Funcionário"] == funcionario].copy()
 
-            # CORREÇÃO: A formatação da data é feita de forma segura com .apply()
-            df_funcionario['Data'] = df_funcionario['Data'].apply(lambda d: d.strftime('%d/%m/%Y'))
-            
-            df_funcionario.to_excel(writer, index=False, sheet_name=funcionario)
+                # CORREÇÃO: A formatação da data é feita de forma segura com .apply()
+                df_funcionario['Data'] = df_funcionario['Data'].apply(lambda d: d.strftime('%d/%m/%Y'))
+                
+                df_funcionario.to_excel(writer, index=False, sheet_name=funcionario)
 
-            worksheet = writer.sheets[funcionario]
-            time_format = '[h]:mm:ss'
-            
-            for col_idx, col_name in enumerate(df_funcionario.columns, 1):
-                if "Hora" in col_name or "Trabalhado" in col_name:
-                    for row_idx in range(2, len(df_funcionario) + 2):
-                        worksheet.cell(row=row_idx, column=col_idx).number_format = time_format
+                worksheet = writer.sheets[funcionario]
+                time_format = '[h]:mm:ss'
+                
+                for col_idx, col_name in enumerate(df_funcionario.columns, 1):
+                    if "Hora" in col_name or "Trabalhado" in col_name:
+                        for row_idx in range(2, len(df_funcionario) + 2):
+                            worksheet.cell(row=row_idx, column=col_idx).number_format = time_format
 
-            totals = {
-                "Normais": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas Normais"].sum(),
-                "A Dever": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas a Dever"].sum(),
-                "Extras Comum": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas Extras (Comum)"].sum(),
-                "Extras 100%": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas Extras (100%)"].sum(),
-            }
-            saldo_final = totals["Extras Comum"] + totals["Extras 100%"] - totals["A Dever"]
+                totals = {
+                    "Normais": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas Normais"].sum(),
+                    "A Dever": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas a Dever"].sum(),
+                    "Extras Comum": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas Extras (Comum)"].sum(),
+                    "Extras 100%": df_calculado[df_calculado["Funcionário"] == funcionario]["Horas Extras (100%)"].sum(),
+                }
+                saldo_final = totals["Extras Comum"] + totals["Extras 100%"] - totals["A Dever"]
 
-            bold_font = Font(bold=True)
-            start_row = len(df_funcionario) + 3
-            worksheet.cell(row=start_row, column=1, value="Resumo Mensal do Funcionário").font = bold_font
+                # --- RESTAURADO: ESCRITA DO RESUMO NO EXCEL ---
+                bold_font = Font(bold=True)
+                start_row = len(df_funcionario) + 3
+                worksheet.cell(row=start_row, column=1, value="Resumo Mensal do Funcionário").font = bold_font
 
-            resumo_data = [
-                ("Total de Horas Normais", totals["Normais"]),
-                ("Total de Horas a Dever", totals["A Dever"]),
-                ("Total de Horas Extras (Comum)", totals["Extras Comum"]),
-                ("Total de Horas Extras (100%)", totals["Extras 100%"]),
-                ("Saldo Final de Horas", saldo_final)
-            ]
+                resumo_data = [
+                    ("Total de Horas Normais", totals["Normais"]),
+                    ("Total de Horas a Dever", totals["A Dever"]),
+                    ("Total de Horas Extras (Comum)", totals["Extras Comum"]),
+                    ("Total de Horas Extras (100%)", totals["Extras 100%"]),
+                    ("Saldo Final de Horas", saldo_final)
+                ]
 
-            for i, (label, value) in enumerate(resumo_data, start=1):
-                cell_label = worksheet.cell(row=start_row + i, column=1, value=label)
-                cell_value = worksheet.cell(row=start_row + i, column=2, value=value)
-                cell_value.number_format = time_format
-                if "Saldo Final" in label:
-                        cell_label.font = bold_font
-                        cell_value.font = bold_font
+                for i, (label, value) in enumerate(resumo_data, start=1):
+                    cell_label = worksheet.cell(row=start_row + i, column=1, value=label)
+                    cell_value = worksheet.cell(row=start_row + i, column=2, value=value)
+                    cell_value.number_format = time_format
+                    if "Saldo Final" in label:
+                            cell_label.font = bold_font
+                            cell_value.font = bold_font
 
-            for col_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
-                worksheet.column_dimensions[col_letter].width = 22
+                for col_letter in ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']:
+                    worksheet.column_dimensions[col_letter].width = 22
+
+                # --- CAPTURA DE DADOS PARA O PREVIEW (JSON) ---
+                resumo_preview.append({
+                    "funcionario": funcionario,
+                    "normais": format_td(totals["Normais"]).replace("+", ""),
+                    "dever": format_td(totals["A Dever"]).replace("+", ""),
+                    "extras_comuns": format_td(totals["Extras Comum"]).replace("+", ""),
+                    "extras_100": format_td(totals["Extras 100%"]).replace("+", ""),
+                    "saldo": format_td(saldo_final)
+                })
 
     output.seek(0)
-    return output
+    # Retornamos a TUPLA (arquivo, preview)
+    return output, resumo_preview
 
 @app.post("/converter")
 async def converter_cartao_ponto(files: List[UploadFile] = File(...)):
-    """ Endpoint principal que recebe um ou mais arquivos e retorna um único Excel. """
+    """ Endpoint que processa e retorna JSON para o Frontend mostrar o Preview """
     try:
-        arquivo_excel = processar_multiplos_arquivos(files)
-        return StreamingResponse(
-            arquivo_excel,
-            media_type="application/vnd.openxmlformats-officedocument.sheet",
-            headers={"Content-Disposition": f"attachment; filename=relatorio_consolidado_{datetime.now().strftime('%Y-%m-%d')}.xlsx"}
-        )
-    except ValueError as e:
-        return {"erro": str(e)}, 400
-    except Exception as e:
-        return {"erro": f"Ocorreu um erro inesperado no servidor: {e}"}, 500
+        # Agora recebemos o arquivo e a lista de preview
+        arquivo_excel, dados_preview = processar_multiplos_arquivos(files)
+        
+        # Convertemos o arquivo Excel para Base64 para enviar dentro do JSON
+        encoded_file = base64.b64encode(arquivo_excel.getvalue()).decode('utf-8')
+        filename = f"Relatorio_Ponto_{datetime.now().strftime('%Y-%m-%d')}.xlsx"
 
+        # Retornamos um JSON completo com tudo que o front precisa
+        return JSONResponse({
+            "preview": dados_preview,
+            "file": encoded_file,
+            "filename": filename
+        })
+    except ValueError as e:
+        return JSONResponse({"erro": str(e)}, status_code=400)
+    except Exception as e:
+        return JSONResponse({"erro": f"Ocorreu um erro inesperado no servidor: {e}"}, status_code=500)
