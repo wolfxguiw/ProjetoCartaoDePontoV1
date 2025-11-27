@@ -309,10 +309,8 @@
                 updateBtnText('Enviando arquivos...');
                 
                 // === CHAMA O BACKEND REAL AQUI ===
-                // Se rodar localmente com live server, certifique-se da porta (ex: http://127.0.0.1:8000/converter)
-                // Se rodar "python -m uvicorn", a URL relativa /converter funciona se o front estiver sendo servido pelo FastAPI.
-                // Como você está usando arquivos separados (index.html e backend.py), use a URL completa do backend:
-                const API_URL = "http://127.0.0.1:8000/converter"; 
+                
+                const API_URL = "https://projetocartaodepontov1.onrender.com/converter";
 
                 const response = await fetch(API_URL, {
                     method: "POST",
@@ -444,3 +442,4 @@
     </script>
 </body>
 </html>
+
