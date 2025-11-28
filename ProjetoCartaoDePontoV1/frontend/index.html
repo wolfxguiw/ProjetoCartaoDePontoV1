@@ -3,15 +3,28 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AgroPonto | Intelligence</title>
     
-    <!-- Tailwind CSS (Estilização Instantânea) -->
+    <!-- === OTIMIZAÇÃO 1: SEO e Redes Sociais === -->
+    <title>AgroPonto | Conversor Inteligente</title>
+    <meta name="description" content="Converta arquivos de ponto TXT para Excel com cálculo automático de horas extras. Ferramenta gratuita para contabilidade e RH.">
+    <meta name="theme-color" content="#0f172a">
+
+    <!-- Open Graph / WhatsApp -->
+    <meta property="og:type" content="website">
+    <meta property="og:title" content="AgroPonto | Conversor Inteligente">
+    <meta property="og:description" content="Converta cartões de ponto em segundos. Cálculo automático de horas normais e extras.">
+    <meta property="og:image" content="https://ui-avatars.com/api/?name=AP&background=0ea5e9&color=fff&size=512">
+
+    <!-- === OTIMIZAÇÃO 2: Favicon (Ícone na Aba) === -->
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚜</text></svg>">
+    
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
     
-    <!-- Google Fonts (Inter - A fonte do SaaS moderno) -->
+    <!-- Fonte Inter -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <!-- Phosphor Icons (Ícones de alta fidelidade) -->
+    <!-- Ícones Phosphor -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <script>
@@ -45,18 +58,13 @@
     </script>
 
     <style>
-        /* Estilos Customizados para Glassmorphism Profundo */
         body { background-color: #0f172a; overflow-y: auto; }
-        
         .glass-card {
             background: rgba(30, 41, 59, 0.4);
             backdrop-filter: blur(12px);
-            -webkit-backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-
-        /* Scrollbar customizada */
         ::-webkit-scrollbar { width: 8px; }
         ::-webkit-scrollbar-track { background: #0f172a; }
         ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
@@ -65,15 +73,12 @@
 </head>
 <body class="relative flex items-center justify-center min-h-screen text-slate-300 selection:bg-brand-500 selection:text-white py-10">
 
-    <!-- Background Ambient Effects (Luzes de fundo) -->
     <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
     <div class="absolute top-0 -right-4 w-72 h-72 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
     <div class="absolute -bottom-8 left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
 
-    <!-- Main Container -->
     <main class="glass-card relative z-10 w-full max-w-[800px] rounded-3xl p-8 m-4 transition-all duration-300 animate-slide-up flex flex-col gap-6">
         
-        <!-- Header -->
         <header class="flex items-center justify-between">
             <div>
                 <div class="flex items-center gap-2 mb-1">
@@ -87,26 +92,19 @@
             </div>
         </header>
 
-        <!-- Formulário de Upload -->
+        <!-- Formulário -->
         <form id="upload-form" class="space-y-6">
-            
-            <!-- Zona de Drop -->
             <div id="drop-zone" class="group relative border-2 border-dashed border-dark-border rounded-2xl p-10 transition-all duration-300 cursor-pointer hover:border-brand-500 hover:bg-white/5 bg-dark-surface/30 text-center">
-                
                 <input type="file" id="fileInput" name="files" accept=".txt" class="hidden" multiple>
                 
-                <!-- Conteúdo Visual do Drop -->
                 <div class="space-y-4 pointer-events-none">
                     <div class="w-16 h-16 mx-auto rounded-full bg-dark-bg border border-dark-border flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:border-brand-500/50 transition-transform duration-300">
                         <i id="upload-icon" class="ph ph-upload-simple text-3xl text-slate-400 group-hover:text-brand-400 transition-colors"></i>
                     </div>
-                    
                     <div id="text-content">
                         <h3 class="text-lg font-medium text-white">Arraste seus arquivos TXT</h3>
                         <p class="text-sm text-slate-500 mt-1">ou clique para buscar no computador</p>
                     </div>
-
-                    <!-- Estado: Arquivo Selecionado (Escondido inicialmente) -->
                     <div id="file-info" class="hidden items-center justify-center gap-3 bg-brand-500/10 py-2 px-4 rounded-lg border border-brand-500/20">
                         <i class="ph ph-file-text text-brand-400 text-xl"></i>
                         <span id="filename" class="text-sm text-brand-100 font-medium truncate max-w-[200px]">arquivo.txt</span>
@@ -117,18 +115,16 @@
                 </div>
             </div>
 
-            <!-- Botão de Ação -->
             <button type="submit" id="submit-btn" disabled class="w-full relative group overflow-hidden rounded-xl bg-brand-600 p-4 font-semibold text-white shadow-lg shadow-brand-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-500 active:scale-[0.98]">
                 <span class="relative z-10 flex items-center justify-center gap-2">
                     <span id="btn-text">Processar Arquivos</span>
                     <i id="btn-icon" class="ph ph-arrow-right font-bold group-hover:translate-x-1 transition-transform"></i>
                 </span>
-                <!-- Brilho no hover -->
                 <div class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
             </button>
         </form>
 
-        <!-- Container do Preview (Aparece após sucesso) -->
+        <!-- Preview -->
         <div id="preview-container" class="hidden space-y-6 animate-slide-up">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">
@@ -137,9 +133,8 @@
                 <span class="text-xs text-slate-500 bg-white/5 px-2 py-1 rounded">Visualização</span>
             </div>
             
-            <!-- Grid de Cards de Funcionários (Agora recebe dados reais!) -->
             <div id="preview-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Cards serão injetados aqui via JS -->
+                <!-- Cards aqui -->
             </div>
 
             <div class="flex gap-3 pt-2">
@@ -147,26 +142,25 @@
                     <i class="ph ph-download-simple text-xl group-hover:animate-bounce"></i> 
                     <span>Baixar Excel Completo</span>
                 </button>
-                <button onclick="resetUI()" class="px-6 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all" title="Processar novos arquivos">
+                <button onclick="resetUI()" class="px-6 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all" title="Novo arquivo">
                     <i class="ph ph-arrow-counter-clockwise text-xl"></i>
                 </button>
             </div>
         </div>
 
-        <!-- Footer -->
         <div class="flex items-center justify-between text-xs text-slate-500 border-t border-white/5 pt-6">
-            <span class="flex items-center gap-1.5">
-                <i class="ph-fill ph-shield-check text-emerald-500"></i>
-                Ambiente Seguro
-            </span>
+            <span class="flex items-center gap-1.5"><i class="ph-fill ph-shield-check text-emerald-500"></i> Ambiente Seguro</span>
             <a href="#" class="hover:text-brand-400 transition-colors">Precisa de ajuda?</a>
         </div>
     </main>
 
-    <!-- TOAST Notification Container (Avisos flutuantes) -->
     <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3"></div>
 
     <script>
+        // --- CONFIGURAÇÃO ---
+        const API_URL = "https://projetocartaodepontov1.onrender.com/converter";
+        const WAKE_UP_URL = "https://projetocartaodepontov1.onrender.com/";
+
         // Elementos Globais
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('fileInput');
@@ -179,7 +173,6 @@
         const btnText = document.getElementById('btn-text');
         const btnIcon = document.getElementById('btn-icon');
         const form = document.getElementById('upload-form');
-        
         const previewContainer = document.getElementById('preview-container');
         const previewContent = document.getElementById('preview-content');
         const downloadBtn = document.getElementById('download-btn');
@@ -187,131 +180,99 @@
         let currentBase64File = null;
         let currentFileName = "";
 
+        // === OTIMIZAÇÃO 3: WAKE UP RENDER (Acordar o servidor) ===
+        window.addEventListener('DOMContentLoaded', () => {
+            console.log("Tentando acordar o servidor...");
+            fetch(WAKE_UP_URL)
+                .then(() => console.log("Backend acordado! ☕"))
+                .catch(() => console.log("Backend ainda dormindo ou acordando..."));
+        });
+
         // --- Event Listeners UI ---
-
-        // Abrir seletor
-        dropZone.addEventListener('click', (e) => {
-            if(e.target !== clearBtn && !clearBtn.contains(e.target)) {
-                fileInput.click();
-            }
-        });
-
-        // Arrastar
-        dropZone.addEventListener('dragover', (e) => {
-            e.preventDefault();
-            dropZone.classList.add('border-brand-500', 'bg-white/5');
-            uploadIcon.classList.add('text-brand-400', 'scale-110');
-        });
-
-        // Sair
-        dropZone.addEventListener('dragleave', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-brand-500', 'bg-white/5');
-            uploadIcon.classList.remove('text-brand-400', 'scale-110');
-        });
-
-        // Soltar
+        dropZone.addEventListener('click', (e) => { if(e.target !== clearBtn) fileInput.click(); });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-brand-500', 'bg-white/5'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-brand-500', 'bg-white/5'); });
         dropZone.addEventListener('drop', (e) => {
-            e.preventDefault();
-            dropZone.classList.remove('border-brand-500', 'bg-white/5');
+            e.preventDefault(); dropZone.classList.remove('border-brand-500', 'bg-white/5');
             if (e.dataTransfer.files.length) {
                 const dt = new DataTransfer();
-                for (let i = 0; i < e.dataTransfer.files.length; i++) {
-                    dt.items.add(e.dataTransfer.files[i]);
-                }
+                for (let i = 0; i < e.dataTransfer.files.length; i++) dt.items.add(e.dataTransfer.files[i]);
                 fileInput.files = dt.files;
                 handleFiles(fileInput.files);
             }
         });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFiles(fileInput.files); });
+        clearBtn.addEventListener('click', (e) => { e.stopPropagation(); resetUI(); });
 
-        // Selecionar via input
-        fileInput.addEventListener('change', () => {
-            if (fileInput.files.length) handleFiles(fileInput.files);
-        });
-
-        // Limpar seleção
-        clearBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            resetUI();
-        });
-
-        // Download do arquivo Real
-        downloadBtn.addEventListener('click', () => {
+        // --- Download e Compartilhamento (Web Share API) ---
+        downloadBtn.addEventListener('click', async () => {
             if (currentBase64File) {
+                // Download Padrão (PC)
                 const link = document.createElement('a');
                 link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${currentBase64File}`;
-                link.download = currentFileName || 'Relatorio.xlsx';
+                link.download = currentFileName;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
-                showToast('Download iniciado com sucesso!', 'success');
+                showToast('Download iniciado!', 'success');
+
+                // === OTIMIZAÇÃO 4: COMPARTILHAR NO MOBILE ===
+                if (navigator.share) {
+                    try {
+                        const byteCharacters = atob(currentBase64File);
+                        const byteNumbers = new Array(byteCharacters.length);
+                        for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
+                        const byteArray = new Uint8Array(byteNumbers);
+                        const file = new File([byteArray], currentFileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+
+                        await navigator.share({
+                            files: [file],
+                            title: 'Relatório de Ponto',
+                            text: 'Segue o relatório de ponto calculado.',
+                        });
+                    } catch (error) {
+                        console.log('Compartilhamento ignorado');
+                    }
+                }
             }
         });
 
         function handleFiles(files) {
-            // Verifica extensão simples do primeiro arquivo
             if(!files[0].name.toLowerCase().endsWith('.txt')) {
                 showToast('Apenas arquivos .txt são permitidos', 'error');
                 return;
             }
-
-            // UI Update
             const count = files.length;
             fileNameDisplay.textContent = count > 1 ? `${count} arquivos selecionados` : files[0].name;
             textContent.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             fileInfo.classList.add('flex');
-            
-            // Ícone muda para sucesso
-            uploadIcon.classList.remove('ph-upload-simple');
-            uploadIcon.classList.add('ph-check-circle', 'text-emerald-400');
-            
-            // Habilita botão
             submitBtn.disabled = false;
         }
 
         function resetUI() {
             fileInput.value = '';
             currentBase64File = null;
-            
-            // Troca de telas: Esconde Preview, Mostra Form
             previewContainer.classList.add('hidden');
             form.classList.remove('hidden');
-
             textContent.classList.remove('hidden');
             fileInfo.classList.add('hidden');
             fileInfo.classList.remove('flex');
-            uploadIcon.classList.add('ph-upload-simple');
-            uploadIcon.classList.remove('ph-check-circle', 'text-emerald-400');
             submitBtn.disabled = true;
             resetButtonState();
         }
 
-        // --- Lógica de Envio e Processamento ---
-
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
-            
             if (!fileInput.files.length) return;
-
-            const formData = new FormData();
             
-            // Adiciona TODOS os arquivos com a chave 'files' (plural) que o backend espera
-            for (let i = 0; i < fileInput.files.length; i++) {
-                formData.append('files', fileInput.files[i]);
-            }
+            const formData = new FormData();
+            for (let i = 0; i < fileInput.files.length; i++) formData.append('files', fileInput.files[i]);
 
-            // Estado de Loading
             setLoading(true);
-
             try {
-                // Feedback visual para o usuário
-                updateBtnText('Enviando arquivos...');
+                updateBtnText('Processando na nuvem...');
                 
-                // === CHAMA O BACKEND REAL AQUI ===
-                
-                const API_URL = "https://projetocartaodepontov1.onrender.com/converter";
-
                 const response = await fetch(API_URL, {
                     method: "POST",
                     body: formData
@@ -323,20 +284,13 @@
                 }
 
                 const data = await response.json();
-                
-                // GERA OS CARDS COM DADOS REAIS DO BACKEND
                 renderPreview(data.preview);
-                
-                // Guarda o arquivo para download
                 currentBase64File = data.file;
                 currentFileName = data.filename;
 
-                // Troca de telas com animação
                 form.classList.add('hidden');
                 previewContainer.classList.remove('hidden');
-                
                 showToast('Cálculo concluído com sucesso!', 'success');
-
             } catch (error) {
                 console.error(error);
                 showToast(error.message, 'error');
@@ -357,7 +311,6 @@
                             <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Resumo Mensal</span>
                         </div>
                     </div>
-                    
                     <div class="space-y-3 text-sm">
                         <div class="flex justify-between items-center group/item">
                             <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Total de Horas Normais</span>
@@ -384,8 +337,6 @@
             `).join('');
         }
 
-        // --- Funções Auxiliares de UI ---
-
         function setLoading(isLoading) {
             if(isLoading) {
                 submitBtn.disabled = true;
@@ -394,52 +345,23 @@
                 dropZone.classList.add('opacity-50', 'pointer-events-none');
             }
         }
-
         function resetButtonState() {
             submitBtn.disabled = false;
             btnIcon.classList.remove('hidden');
             btnText.textContent = 'Processar Arquivos';
             dropZone.classList.remove('opacity-50', 'pointer-events-none');
         }
-
-        function updateBtnText(text) {
-            btnText.innerHTML = `<i class="ph ph-cpu animate-pulse text-lg"></i> ${text}`;
-        }
-
-        const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
-
-        // Sistema de Notificações (Toast)
+        function updateBtnText(text) { btnText.innerHTML = `<i class="ph ph-cpu animate-pulse text-lg"></i> ${text}`; }
         function showToast(message, type = 'success') {
             const toast = document.createElement('div');
-            
-            // Cores baseadas no tipo
-            const colors = type === 'success' 
-                ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' 
-                : 'bg-red-500/10 border-red-500/20 text-red-400';
-            
+            const colors = type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400';
             const icon = type === 'success' ? 'ph-check-circle' : 'ph-warning-circle';
-
             toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-lg transform transition-all duration-300 translate-x-10 opacity-0 ${colors}`;
-            toast.innerHTML = `
-                <i class="ph ${icon} text-xl"></i>
-                <span class="text-sm font-medium">${message}</span>
-            `;
-
-            const container = document.getElementById('toast-container');
-            container.appendChild(toast);
-
-            // Animação de entrada
-            requestAnimationFrame(() => {
-                toast.classList.remove('translate-x-10', 'opacity-0');
-            });
-
-            // Remove automático
-            setTimeout(() => {
-                toast.classList.add('translate-x-10', 'opacity-0');
-                setTimeout(() => toast.remove(), 300);
-            }, 4000);
+            toast.innerHTML = `<i class="ph ${icon} text-xl"></i><span class="text-sm font-medium">${message}</span>`;
+            document.getElementById('toast-container').appendChild(toast);
+            requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
+            setTimeout(() => { toast.classList.add('translate-x-10', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 4000);
         }
     </script>
 </body>
 </html>
-
