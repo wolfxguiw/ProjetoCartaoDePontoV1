@@ -64,6 +64,58 @@
             overflow-y: auto;
         }
 
+        /* Configurações de Animação de Identidade */
+        @keyframes drawPath {
+            0% {
+                stroke-dashoffset: 600;
+            }
+
+            100% {
+                stroke-dashoffset: 0;
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                filter: blur(10px);
+            }
+
+            to {
+                opacity: 1;
+                filter: blur(0px);
+            }
+        }
+
+        .path-draw {
+            stroke-dasharray: 600;
+            stroke-dashoffset: 600;
+            animation: drawPath 3s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+
+        .animate-reveal {
+            opacity: 0;
+            animation: fadeIn 1.2s cubic-bezier(0.65, 0, 0.35, 1) forwards;
+        }
+
+        #loading-overlay {
+            position: fixed;
+            inset: 0;
+            background: #0f172a;
+            z-index: 1000;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            transition: all 1.2s cubic-bezier(0.7, 0, 0.3, 1);
+        }
+
+        #loading-overlay.loaded {
+            opacity: 0;
+            visibility: hidden;
+            transform: scale(1.05);
+        }
+
         .glass-card {
             background: rgba(30, 41, 59, 0.4);
             backdrop-filter: blur(12px);
@@ -195,6 +247,60 @@
 <body
     class="relative flex items-center justify-center min-h-screen text-slate-300 selection:bg-brand-500 selection:text-white py-10">
 
+    <!-- Splash Screen / Loading Overlay -->
+    <div id="loading-overlay">
+        <div class="relative flex flex-col items-center">
+            <!-- Logo SVG em Construção -->
+            <svg width="220" height="220" viewBox="0 0 100 100" fill="none"
+                class="filter drop-shadow-[0_0_20px_rgba(56,189,248,0.4)]">
+                <defs>
+                    <linearGradient id="brandGradSplash" x1="0%" y1="0%" x2="100%" y2="100%">
+                        <stop offset="0%" stop-color="#38bdf8" />
+                        <stop offset="100%" stop-color="#0284c7" />
+                    </linearGradient>
+                </defs>
+                <!-- Moldura Principal -->
+                <rect x="10" y="10" width="80" height="80" rx="16" stroke="#38bdf8" stroke-width="2.5"
+                    class="path-draw" />
+                <!-- Células do Excel -->
+                <path d="M35 10V90M10 35H90M10 65H90" stroke="white" stroke-opacity="0.1" stroke-width="1.5"
+                    class="path-draw" style="animation-delay: 0.4s;" />
+                <!-- Relógio -->
+                <circle cx="65" cy="55" r="26" fill="#1e293b" fill-opacity="0" stroke="#38bdf8" stroke-width="2"
+                    class="path-draw" style="animation-delay: 0.8s;">
+                    <animate attributeName="fill-opacity" values="0;1" dur="1s" begin="2s" fill="freeze" />
+                </circle>
+                <!-- Quadrado Excel Sólido -->
+                <rect x="10" y="22" width="30" height="30" rx="6" fill="url(#brandGradSplash)" opacity="0"
+                    class="animate-reveal" style="animation-delay: 2.2s;" />
+                <!-- Ícone X -->
+                <path d="M20 32L30 42M30 32L20 42" stroke="white" stroke-width="4" stroke-linecap="round"
+                    class="path-draw" style="animation-delay: 2.5s;" />
+                <!-- Ponteiros -->
+                <g opacity="0" class="animate-reveal" style="animation-delay: 3.2s;">
+                    <line x1="65" y1="55" x2="65" y2="44" stroke="white" stroke-width="3" stroke-linecap="round" />
+                    <line x1="65" y1="55" x2="74" y2="55" stroke="#38bdf8" stroke-width="2" stroke-linecap="round" />
+                    <circle cx="65" cy="55" r="2" fill="#38bdf8" />
+                </g>
+            </svg>
+
+            <div class="mt-8 text-center animate-reveal" style="animation-delay: 1.2s;">
+                <h2 class="text-3xl font-black text-white tracking-tighter">Ponto<span
+                        class="text-brand-400">Sync</span></h2>
+                <p class="text-slate-500 text-[10px] uppercase tracking-[0.3em] mt-3">Integração & Leitura Inteligente
+                </p>
+            </div>
+
+            <!-- Barra de Carregamento -->
+            <div class="w-[200px] h-[2px] bg-white/5 rounded-full overflow-hidden mt-8 animate-reveal"
+                style="animation-delay: 1.8s;">
+                <div id="ponto-sync-progress"
+                    class="h-full bg-brand-400 shadow-[0_0_15px_#38bdf8] transition-all duration-[4s] ease-in-out w-0">
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div
         class="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob">
     </div>
@@ -209,12 +315,17 @@
         class="glass-card relative z-10 w-full max-w-[800px] rounded-3xl p-8 m-4 transition-all duration-300 animate-slide-up flex flex-col gap-6">
 
         <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-            <div>
-                <div class="flex items-center gap-2 mb-1">
-                    <div class="w-2 h-2 rounded-full bg-brand-400 shadow-[0_0_10px_#38bdf8]"></div>
-                    <h2 class="text-xs font-bold tracking-widest text-brand-400 uppercase">PontoSync</h2>
-                </div>
-                <h1 class="text-2xl font-bold text-white tracking-tight">Conversor Inteligente</h1>
+            <div class="flex items-center gap-3">
+                <svg width="45" height="45" viewBox="0 0 100 100" fill="none">
+                    <rect x="10" y="10" width="80" height="80" rx="16" stroke="#38bdf8" stroke-width="4" />
+                    <rect x="10" y="22" width="30" height="30" rx="6" fill="#38bdf8" />
+                    <path d="M20 32L30 42M30 32L20 42" stroke="white" stroke-width="4" stroke-linecap="round" />
+                    <circle cx="65" cy="55" r="26" fill="#1e293b" stroke="#38bdf8" stroke-width="3" />
+                    <line x1="65" y1="55" x2="65" y2="44" stroke="white" stroke-width="4" stroke-linecap="round" />
+                    <line x1="65" y1="55" x2="73" y2="55" stroke="#38bdf8" stroke-width="3" stroke-linecap="round" />
+                </svg>
+                <h1 class="text-3xl font-black text-white tracking-tighter">Ponto<span
+                        class="text-brand-400">Sync</span></h1>
             </div>
 
             <div class="relative w-full sm:w-auto">
@@ -1564,6 +1675,24 @@
         clearBtn.addEventListener('click', (e) => { e.stopPropagation(); resetUI(); });
         window.toggleDetails = (i) => { const c = document.getElementById(`details-${i}`), ic = document.getElementById(`icon-${i}`); if (c.classList.contains('accordion-open')) { c.classList.remove('accordion-open'); ic.style.transform = 'rotate(0deg)' } else { c.classList.add('accordion-open'); ic.style.transform = 'rotate(180deg)' } };
         function showToast(msg, type = 'success') { const t = document.createElement('div'), c = type === 'success' ? 'border-emerald-500/20 text-emerald-400' : type === 'warning' ? 'border-yellow-500/20 text-yellow-400' : 'border-red-500/20 text-red-400'; t.className = `flex items-center gap-3 px-4 py-3 rounded-xl border bg-dark-surface backdrop-blur-md shadow-lg transform transition-all duration-300 translate-x-10 opacity-0 ${c}`; t.innerHTML = `<span class="text-sm font-medium">${msg}</span>`; document.getElementById('toast-container').appendChild(t); requestAnimationFrame(() => t.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { t.classList.add('translate-x-10', 'opacity-0'); setTimeout(() => t.remove(), 300) }, 4000); }
+
+        // Script de Controle de Carregamento
+        window.addEventListener('load', () => {
+            const bar = document.getElementById('ponto-sync-progress');
+            const overlay = document.getElementById('loading-overlay');
+
+            // Inicia a barra de progresso
+            if (bar) bar.style.width = '100%';
+
+            // Remove o overlay após a conclusão da animação do logo (aprox. 4.5s)
+            setTimeout(() => {
+                if (overlay) {
+                    overlay.classList.add('loaded');
+                    // Liberta o scroll da página
+                    document.body.style.overflow = 'auto';
+                }
+            }, 4500);
+        });
     </script>
 </body>
 
