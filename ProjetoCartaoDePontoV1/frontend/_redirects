@@ -1,0 +1,2 @@
+# Netlify Redirects - Proxy API calls para o backend Render
+/api/*  https://projetocartaodepontov1.onrender.com/:splat  200
