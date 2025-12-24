@@ -1,29 +1,25 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    
-    <!-- === OTIMIZAÇÃO 1: SEO e Redes Sociais === -->
-    <title>AgroPonto | Conversor Inteligente</title>
-    <meta name="description" content="Converta arquivos de ponto TXT para Excel com cálculo automático de horas extras. Ferramenta gratuita para contabilidade e RH.">
+
+    <title>PontoSync | Conversor Inteligente</title>
+    <meta name="description" content="Converta arquivos de ponto TXT, PDF ou Fotos para Excel com análise inteligente.">
     <meta name="theme-color" content="#0f172a">
 
-    <!-- Open Graph / WhatsApp -->
     <meta property="og:type" content="website">
-    <meta property="og:title" content="AgroPonto | Conversor Inteligente">
-    <meta property="og:description" content="Converta cartões de ponto em segundos. Cálculo automático de horas normais e extras.">
-   <meta property="og:image" content="https://cartaodeponto.netlify.app/logo.png">
-    <!-- === OTIMIZAÇÃO 2: Favicon (Ícone na Aba) === -->
-    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🚜</text></svg>">
-    
-    <!-- Tailwind CSS -->
+    <meta property="og:title" content="PontoSync | Conversor Inteligente">
+    <meta property="og:description"
+        content="Converta cartões de ponto em segundos. Leitura de TXT, PDF e Fotos via IA.">
+
+    <!-- NOTA DE INFRAESTRUTURA: 
+         Em produção real, substitua este CDN por um arquivo CSS compilado (Build Step) 
+         para evitar FOUC e dependência externa. Mantido aqui para portabilidade. -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- Fonte Inter -->
+
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    
-    <!-- Ícones Phosphor -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
 
     <script>
@@ -38,6 +34,8 @@
                     animation: {
                         'blob': 'blob 7s infinite',
                         'slide-up': 'slideUp 0.4s ease-out forwards',
+                        'bounce-slow': 'bounce 2s infinite',
+                        'pulse-border': 'pulseBorder 2s infinite',
                     },
                     keyframes: {
                         blob: {
@@ -49,6 +47,10 @@
                         slideUp: {
                             '0%': { transform: 'translateY(10px)', opacity: '0' },
                             '100%': { transform: 'translateY(0)', opacity: '1' },
+                        },
+                        pulseBorder: {
+                            '0%, 100%': { borderColor: 'rgba(56, 189, 248, 0.5)' },
+                            '50%': { borderColor: 'rgba(56, 189, 248, 0.1)' },
                         }
                     }
                 }
@@ -57,311 +59,1512 @@
     </script>
 
     <style>
-        body { background-color: #0f172a; overflow-y: auto; }
+        body {
+            background-color: #0f172a;
+            overflow-y: auto;
+        }
+
         .glass-card {
             background: rgba(30, 41, 59, 0.4);
             backdrop-filter: blur(12px);
             border: 1px solid rgba(255, 255, 255, 0.08);
             box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
         }
-        ::-webkit-scrollbar { width: 8px; }
-        ::-webkit-scrollbar-track { background: #0f172a; }
-        ::-webkit-scrollbar-thumb { background: #334155; border-radius: 4px; }
-        ::-webkit-scrollbar-thumb:hover { background: #475569; }
+
+        .accordion-content {
+            transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+            max-height: 0;
+            opacity: 0;
+            overflow: hidden;
+        }
+
+        .accordion-open {
+            max-height: 500px;
+            opacity: 1;
+            overflow-y: auto;
+        }
+
+        .checkbox-wrapper input:checked+div {
+            background-color: #0ea5e9;
+            border-color: #0ea5e9;
+        }
+
+        .checkbox-wrapper input:checked+div svg {
+            display: block;
+        }
+
+        .coachmark-arrow {
+            position: absolute;
+            bottom: -6px;
+            right: 20px;
+            width: 0;
+            height: 0;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 6px solid #0ea5e9;
+        }
+
+        /* Scrollbar customizada para modais de texto */
+        .text-content::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .text-content::-webkit-scrollbar-track {
+            background: #1e293b;
+        }
+
+        .text-content::-webkit-scrollbar-thumb {
+            background: #475569;
+            border-radius: 3px;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: #475569;
+        }
+
+        /* Input Editável Discreto */
+        .editable-input {
+            background: transparent;
+            border-bottom: 1px solid transparent;
+            width: 100%;
+            transition: all 0.2s;
+        }
+
+        .editable-input:hover {
+            border-bottom-color: #475569;
+        }
+
+        .editable-input:focus {
+            border-bottom-color: #38bdf8;
+            outline: none;
+            background: rgba(255, 255, 255, 0.05);
+        }
+
+        /* Destaque quando editado */
+        .edited-cell {
+            color: #38bdf8;
+            font-weight: bold;
+        }
+
+        /* Input Inválido */
+        .input-error {
+            border-bottom-color: #ef4444 !important;
+            color: #fca5a5;
+        }
+
+        /* Select de Status Customizado */
+        .status-select {
+            background-color: transparent;
+            border: none;
+            font-size: 10px;
+            text-transform: uppercase;
+            font-weight: bold;
+            letter-spacing: 0.05em;
+            text-align: right;
+            cursor: pointer;
+            outline: none;
+            border-radius: 4px;
+            padding: 2px 4px;
+            transition: background 0.2s;
+        }
+
+        .status-select:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+
+        .status-select option {
+            background-color: #1e293b;
+            color: white;
+        }
     </style>
 </head>
-<body class="relative flex items-center justify-center min-h-screen text-slate-300 selection:bg-brand-500 selection:text-white py-10">
 
-    <div class="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
-    <div class="absolute top-0 -right-4 w-72 h-72 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
-    <div class="absolute -bottom-8 left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+<body
+    class="relative flex items-center justify-center min-h-screen text-slate-300 selection:bg-brand-500 selection:text-white py-10">
 
-    <main class="glass-card relative z-10 w-full max-w-[800px] rounded-3xl p-8 m-4 transition-all duration-300 animate-slide-up flex flex-col gap-6">
-        
-        <header class="flex items-center justify-between">
+    <div
+        class="absolute top-0 -left-4 w-72 h-72 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob">
+    </div>
+    <div
+        class="absolute top-0 -right-4 w-72 h-72 bg-brand-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000">
+    </div>
+    <div
+        class="absolute -bottom-8 left-20 w-72 h-72 bg-emerald-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000">
+    </div>
+
+    <main
+        class="glass-card relative z-10 w-full max-w-[800px] rounded-3xl p-8 m-4 transition-all duration-300 animate-slide-up flex flex-col gap-6">
+
+        <header class="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <div>
                 <div class="flex items-center gap-2 mb-1">
                     <div class="w-2 h-2 rounded-full bg-brand-400 shadow-[0_0_10px_#38bdf8]"></div>
-                    <h2 class="text-xs font-bold tracking-widest text-brand-400 uppercase">Ferramenta Interna</h2>
+                    <h2 class="text-xs font-bold tracking-widest text-brand-400 uppercase">PontoSync</h2>
                 </div>
-                <h1 class="text-2xl font-bold text-white tracking-tight">Conversor de Ponto</h1>
+                <h1 class="text-2xl font-bold text-white tracking-tight">Conversor Inteligente</h1>
             </div>
-            <div class="p-3 bg-white/5 rounded-2xl border border-white/10">
-                <i class="ph ph-files text-2xl text-brand-400"></i>
+
+            <div class="relative w-full sm:w-auto">
+                <div id="coachmark" class="absolute -top-12 right-0 animate-bounce-slow z-20 pointer-events-none">
+                    <div
+                        class="bg-brand-500 text-white text-xs font-bold px-3 py-1.5 rounded-lg shadow-lg whitespace-nowrap relative">
+                        Configurar Regras 👇
+                        <div class="coachmark-arrow"></div>
+                    </div>
+                </div>
+
+                <button id="config-btn"
+                    class="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 bg-white/5 hover:bg-white/10 rounded-xl border border-brand-500/30 hover:border-brand-500/60 transition-all group relative overflow-hidden">
+                    <i
+                        class="ph ph-gear text-xl text-brand-400 group-hover:rotate-90 transition-transform duration-500"></i>
+                    <span class="font-medium text-brand-100 group-hover:text-white">Configurar Regras</span>
+                    <div class="absolute inset-0 bg-brand-500/10 opacity-0 group-hover:opacity-100 transition-opacity">
+                    </div>
+                </button>
             </div>
         </header>
 
-        <!-- Formulário -->
+        <!-- Indicador de Regra Ativa -->
+        <div id="active-rule-indicator"
+            class="bg-brand-900/20 border border-brand-500/20 rounded-xl p-4 flex flex-col sm:flex-row items-center justify-between gap-3 text-sm">
+            <div class="flex items-center gap-3 text-brand-100">
+                <div class="p-2 bg-brand-500/20 rounded-lg text-brand-400">
+                    <i class="ph-fill ph-faders text-lg"></i>
+                </div>
+                <div>
+                    <span class="block text-xs text-brand-400/70 font-semibold uppercase tracking-wider mb-0.5">Regra
+                        Ativa</span>
+                    <strong id="rule-summary" class="text-white text-base">Padrão</strong>
+                </div>
+            </div>
+            <div class="flex gap-2 w-full sm:w-auto">
+                <button onclick="openConfig()"
+                    class="flex-1 sm:flex-none text-xs bg-white/5 hover:bg-white/10 border border-white/10 px-3 py-1.5 rounded-lg text-slate-300 hover:text-white transition-colors">
+                    Editar
+                </button>
+            </div>
+        </div>
+
         <form id="upload-form" class="space-y-6">
-            <div id="drop-zone" class="group relative border-2 border-dashed border-dark-border rounded-2xl p-10 transition-all duration-300 cursor-pointer hover:border-brand-500 hover:bg-white/5 bg-dark-surface/30 text-center">
-                <input type="file" id="fileInput" name="files" accept=".txt" class="hidden" multiple>
-                
+            <div id="drop-zone"
+                class="group relative border-2 border-dashed border-dark-border rounded-2xl p-10 transition-all duration-300 cursor-pointer hover:border-brand-500 hover:bg-white/5 bg-dark-surface/30 text-center">
+                <input type="file" id="fileInput" name="files" accept=".txt, .pdf, image/png, image/jpeg" class="hidden"
+                    multiple>
+
                 <div class="space-y-4 pointer-events-none">
-                    <div class="w-16 h-16 mx-auto rounded-full bg-dark-bg border border-dark-border flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:border-brand-500/50 transition-transform duration-300">
-                        <i id="upload-icon" class="ph ph-upload-simple text-3xl text-slate-400 group-hover:text-brand-400 transition-colors"></i>
+                    <div
+                        class="w-16 h-16 mx-auto rounded-full bg-dark-bg border border-dark-border flex items-center justify-center shadow-lg group-hover:scale-110 group-hover:border-brand-500/50 transition-transform duration-300">
+                        <i id="upload-icon"
+                            class="ph ph-upload-simple text-3xl text-slate-400 group-hover:text-brand-400 transition-colors"></i>
                     </div>
                     <div id="text-content">
-                        <h3 class="text-lg font-medium text-white">Arraste seus arquivos TXT</h3>
-                        <p class="text-sm text-slate-500 mt-1">ou clique para buscar no computador</p>
+                        <h3 class="text-lg font-medium text-white">Arraste TXT, PDF ou Fotos</h3>
+                        <p class="text-sm text-slate-500 mt-1">Legíveis (ponto manual ou impresso)</p>
                     </div>
-                    <div id="file-info" class="hidden items-center justify-center gap-3 bg-brand-500/10 py-2 px-4 rounded-lg border border-brand-500/20">
-                        <i class="ph ph-file-text text-brand-400 text-xl"></i>
-                        <span id="filename" class="text-sm text-brand-100 font-medium truncate max-w-[200px]">arquivo.txt</span>
-                        <button type="button" id="clear-file" class="text-slate-400 hover:text-white pointer-events-auto">
-                            <i class="ph ph-x"></i>
+                    <div id="file-info" class="hidden flex-col items-center justify-center gap-3">
+                        <!-- Lista de Arquivos (Feedback Visual de Status) -->
+                        <div id="file-list" class="w-full space-y-2"></div>
+
+                        <button type="button" id="clear-file"
+                            class="mt-2 text-xs text-slate-400 hover:text-white pointer-events-auto underline">
+                            Limpar Seleção
                         </button>
                     </div>
                 </div>
             </div>
 
-            <button type="submit" id="submit-btn" disabled class="w-full relative group overflow-hidden rounded-xl bg-brand-600 p-4 font-semibold text-white shadow-lg shadow-brand-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:bg-brand-500 active:scale-[0.98]">
+            <!-- LGPD Consentimento -->
+            <div id="consent-container"
+                class="flex items-start gap-3 px-2 bg-white/5 p-4 rounded-xl border border-white/5 transition-all duration-300">
+                <label class="relative flex items-center p-1 rounded-full cursor-pointer checkbox-wrapper mt-0.5">
+                    <input type="checkbox" id="lgpd-consent" required class="hidden peer">
+                    <div
+                        class="w-5 h-5 border-2 border-slate-500 rounded bg-transparent peer-checked:bg-emerald-500 peer-checked:border-emerald-500 transition-all flex items-center justify-center">
+                        <i class="ph-bold ph-check text-white text-xs hidden peer-checked:block"></i>
+                    </div>
+                </label>
+                <div class="text-xs text-slate-400 leading-relaxed">
+                    <span class="font-bold text-slate-300">Autorização Obrigatória:</span>
+                    Declaro que tenho autorização legal para processar estes dados e concordo com os
+                    <button type="button" onclick="openModal('terms')"
+                        class="text-brand-400 hover:underline bg-transparent border-0 p-0 cursor-pointer">Termos de
+                        Uso</button> e
+                    <button type="button" onclick="openModal('privacy')"
+                        class="text-brand-400 hover:underline bg-transparent border-0 p-0 cursor-pointer">Política de
+                        Privacidade</button>.
+                    <span class="block text-[10px] text-slate-500 mt-1 italic">*Registro de consentimento (Timestamp +
+                        IP) será armazenado para auditoria jurídica.</span>
+                </div>
+            </div>
+
+            <button type="submit" id="submit-btn" disabled
+                class="w-full relative group overflow-hidden rounded-xl bg-brand-600 p-4 font-semibold text-white shadow-lg shadow-brand-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-slate-700 hover:bg-brand-500 active:scale-[0.98]">
                 <span class="relative z-10 flex items-center justify-center gap-2">
                     <span id="btn-text">Processar Arquivos</span>
-                    <i id="btn-icon" class="ph ph-arrow-right font-bold group-hover:translate-x-1 transition-transform"></i>
+                    <i id="btn-icon"
+                        class="ph ph-arrow-right font-bold group-hover:translate-x-1 transition-transform"></i>
                 </span>
-                <div class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0"></div>
+                <div
+                    class="absolute inset-0 -translate-x-full group-hover:animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-white/20 to-transparent z-0">
+                </div>
             </button>
         </form>
 
-        <!-- Preview -->
         <div id="preview-container" class="hidden space-y-6 animate-slide-up">
             <div class="flex items-center justify-between">
                 <h3 class="text-lg font-semibold text-white flex items-center gap-2">
-                    <i class="ph ph-chart-bar text-brand-400"></i> Resumo Calculado
+                    <i class="ph ph-chart-pie-slice text-brand-400"></i> Análise de Ponto
                 </h3>
                 <span class="text-xs text-slate-500 bg-white/5 px-2 py-1 rounded">Visualização</span>
             </div>
-            
-            <div id="preview-content" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <!-- Cards aqui -->
+
+            <div id="preview-content" class="grid grid-cols-1 gap-6">
+            </div>
+
+            <!-- Aviso de Alterações Não Salvas (Dinâmico) -->
+            <div id="changes-warning"
+                class="hidden bg-yellow-500/10 border border-yellow-500/20 p-3 rounded-lg flex items-start gap-3 mt-4 animate-slide-up">
+                <i class="ph-fill ph-warning-circle text-yellow-500 text-lg mt-0.5"></i>
+                <div class="text-xs text-yellow-200/80">
+                    <strong class="text-yellow-500 block mb-0.5">Alterações Detectadas:</strong>
+                    Você editou os dados manualmente. Clique em <strong>"Recalcular e Baixar"</strong> abaixo para que o
+                    sistema gere um novo Excel com as contas atualizadas.
+                </div>
             </div>
 
             <div class="flex gap-3 pt-2">
-                <button id="download-btn" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 group">
-                    <i class="ph ph-download-simple text-xl group-hover:animate-bounce"></i> 
-                    <span>Baixar Excel Completo</span>
+                <!-- Botão Inteligente: Muda de "Baixar" para "Recalcular" -->
+                <button id="action-btn"
+                    class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 group">
+                    <i class="ph ph-download-simple text-xl group-hover:animate-bounce" id="action-icon"></i>
+                    <span id="action-text">Baixar Excel Original</span>
                 </button>
-                <button onclick="resetUI()" class="px-6 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all" title="Novo arquivo">
+                <button onclick="resetUI()"
+                    class="px-6 py-4 rounded-xl border border-white/10 hover:bg-white/5 text-slate-400 hover:text-white transition-all"
+                    title="Novo arquivo">
                     <i class="ph ph-arrow-counter-clockwise text-xl"></i>
                 </button>
             </div>
         </div>
 
-        <div class="flex items-center justify-between text-xs text-slate-500 border-t border-white/5 pt-6">
-            <span class="flex items-center gap-1.5"><i class="ph-fill ph-shield-check text-emerald-500"></i> Ambiente Seguro</span>
-            <a href="#" class="hover:text-brand-400 transition-colors">Precisa de ajuda?</a>
+        <!-- Disclaimer Jurídico Fixo -->
+        <div class="border-t border-white/5 pt-4 mt-2">
+            <p class="text-[10px] text-slate-600 text-center leading-tight">
+                <i class="ph-fill ph-info"></i> <strong>Aviso Legal:</strong> Este relatório é uma ferramenta auxiliar
+                de conferência e apuração.
+                Não substitui o controle de ponto oficial (REP) homologado pelo MTE conforme Portaria 671.
+            </p>
+        </div>
+
+        <div class="flex items-center justify-between text-xs text-slate-500 pt-4">
+            <span class="flex items-center gap-1.5"><i class="ph-fill ph-shield-check text-emerald-500"></i> Ambiente
+                Seguro</span>
+            <a href="mailto:suporte@pontosync.com?subject=Solicitação de Suporte"
+                class="hover:text-brand-400 transition-colors">Precisa de ajuda?</a>
         </div>
     </main>
+
+    <!-- MODAL DE CONFIGURAÇÃO -->
+    <div id="config-modal"
+        class="fixed inset-0 z-50 hidden flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity opacity-0 overflow-y-auto py-10">
+        <div class="bg-[#1e293b] w-full max-w-lg rounded-2xl border border-white/10 shadow-2xl transform scale-95 transition-transform duration-300 relative my-auto"
+            id="config-content">
+            <div
+                class="p-6 border-b border-white/5 flex justify-between items-center sticky top-0 bg-[#1e293b] z-10 rounded-t-2xl">
+                <h3 class="text-lg font-bold text-white flex items-center gap-2">
+                    <i class="ph ph-sliders text-brand-400"></i> Regras de Apuração
+                </h3>
+                <button onclick="closeConfig()" class="text-slate-400 hover:text-white"><i
+                        class="ph ph-x text-lg"></i></button>
+            </div>
+
+            <div class="p-6 space-y-6">
+                <!-- 0. IDENTIFICAÇÃO CORPORATIVA -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="ph-bold ph-buildings"></i> Identificação Corporativa
+                    </h4>
+                    <div class="grid grid-cols-1 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Razão Social / Nome</label>
+                            <input type="text" id="cfg-empresa-nome" placeholder="Ex: Minha Empresa Ltda"
+                                class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">CNPJ</label>
+                            <input type="text" id="cfg-empresa-cnpj" placeholder="00.000.000/0000-00"
+                                class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5"></div>
+
+                <!-- 1. JORNADA DE TRABALHO -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="ph-bold ph-clock"></i> Jornada
+                    </h4>
+
+                    <!-- 1. MODELO DE ESCALA (Controlador Principal) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Modelo de Escala</label>
+                        <select id="cfg-escala-tipo" onchange="toggleEscalaOptions()"
+                            class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500">
+                            <option value="clt_5x2_padrao">5x2 Padrão (44h)</option>
+                            <option value="clt_5x2_comp">5x2 Compensado</option>
+                            <option value="clt_6x1_com">6x1 Comércio</option>
+                            <option value="clt_5x1">5x1 (Ciclo)</option>
+                            <option value="clt_12x36">12x36 (Plantão)</option>
+                            <option value="estagio_6h">Estágio 6h</option>
+                            <option value="clt_personalizada">Personalizada</option>
+                        </select>
+                    </div>
+
+                    <!-- 2. DATA INÍCIO CICLO (Condicional 12x36) -->
+                    <div id="escala-ciclo-container"
+                        class="hidden mt-3 p-3 bg-brand-500/10 border border-brand-500/20 rounded-lg animate-slide-up">
+                        <label class="block text-xs font-bold text-brand-400 mb-1 flex items-center gap-1">
+                            <i class="ph-fill ph-calendar-check"></i> Data de Início do Ciclo
+                        </label>
+                        <p class="text-[10px] text-slate-400 mb-2">Informe um dia que o funcionário TRABALHOU para o
+                            sistema calcular o dia sim/dia não.</p>
+                        <input type="date" id="cfg-data-inicio-escala"
+                            class="w-full bg-dark-bg border border-brand-500/50 rounded-lg p-2 text-white text-sm">
+                    </div>
+
+                    <!-- 3. CARGA HORÁRIA (Condicional Personalizada) -->
+                    <div id="container-carga-horaria" class="hidden">
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Carga Horária Diária</label>
+                        <select id="cfg-jornada" onchange="toggleCustomJornada()"
+                            class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500 focus:outline-none">
+                            <option value="480">08:00 (Padrão 44h)</option>
+                            <option value="528">08:48 (Sáb. Compensado)</option>
+                            <option value="360">06:00 (30h)</option>
+                            <option value="720">12:00 (Plantão 12x36)</option>
+                            <option value="custom">Outro (Personalizado)</option>
+                        </select>
+                        <div id="custom-jornada-container" class="hidden mt-2">
+                            <input type="time" id="cfg-jornada-custom"
+                                class="w-full bg-dark-bg border border-brand-500/50 rounded-lg p-2 text-white font-mono text-center"
+                                value="07:20">
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-4">
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Tolerância (min)</label>
+                            <input type="number" id="cfg-tolerancia" value="10"
+                                class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500">
+                        </div>
+                        <div>
+                            <label class="block text-xs font-semibold text-slate-400 mb-1">Regime</label>
+                            <select id="cfg-regime"
+                                class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500">
+                                <option value="pagamento">Pagamento Mensal</option>
+                                <option value="banco">Banco de Horas</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5"></div>
+
+                <!-- 2. INTERVALO (ALMOÇO) -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="ph-bold ph-hamburger"></i> Intervalo (Art. 71)
+                    </h4>
+                    <div class="flex flex-col bg-dark-bg p-3 rounded-lg border border-white/5 gap-2">
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center gap-3 cursor-pointer">
+                                <input type="checkbox" id="cfg-intervalo-auto" class="accent-brand-500 w-4 h-4"
+                                    onchange="toggleIntervaloInput()">
+                                <span class="text-sm text-slate-300">Forçar Desconto (Pré-assinalado)</span>
+                            </label>
+                            <div id="cfg-intervalo-input-group" class="hidden flex items-center gap-2">
+                                <input type="number" id="cfg-intervalo-minutos" value="60"
+                                    class="w-16 bg-white/5 border border-white/10 rounded-md p-1 text-center text-sm text-white">
+                                <span class="text-xs text-slate-500">min</span>
+                            </div>
+                        </div>
+                        <p class="text-[10px] text-slate-500 italic pl-7">
+                            *Atenção: Marque apenas se o ponto NÃO tiver registros de saída/volta do almoço. Se houver
+                            batidas, o sistema as usará prioritariamente.
+                        </p>
+                    </div>
+                </div>
+
+                <div class="h-px bg-white/5"></div>
+
+                <!-- 3. CONFIGURAÇÕES DE CALENDÁRIO -->
+                <div class="space-y-3">
+                    <h4 class="text-xs font-bold text-brand-400 uppercase tracking-widest flex items-center gap-2">
+                        <i class="ph-bold ph-calendar"></i> Calendário
+                    </h4>
+
+                    <!-- BLINDADO v4.0: Percentuais de extra são internos, não editáveis pelo usuário.
+                         Decisão: Evitar que contadores configurem regras contábeis incorretamente.
+                         Trade-off documentado: Menor flexibilidade, maior segurança. -->
+                    <input type="hidden" id="cfg-extra-util" value="50">
+                    <input type="hidden" id="cfg-extra-fds" value="100">
+
+                    <!-- Feriados (Tags Component) -->
+                    <div>
+                        <label class="block text-xs font-semibold text-slate-400 mb-1">Feriados no Período
+                            (Tags)</label>
+
+                        <!-- Área de Tags -->
+                        <div id="holiday-tags-container" class="flex flex-wrap gap-2 mb-2 min-h-[30px]">
+                            <!-- Tags inseridas via JS -->
+                        </div>
+
+                        <!-- Input Inteligente -->
+                        <div class="flex items-center gap-2">
+                            <div class="relative flex-1">
+                                <input type="text" id="holiday-input" placeholder="DD/MM" maxlength="5"
+                                    class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 pl-9 text-white text-sm placeholder-slate-600 focus:border-brand-500 font-mono tracking-wider">
+                                <i class="ph-bold ph-calendar-plus absolute left-3 top-3 text-slate-500"></i>
+                            </div>
+                            <button type="button" onclick="addHolidayFromInput()"
+                                class="bg-brand-600 hover:bg-brand-500 text-white p-2.5 rounded-lg transition-colors">
+                                <i class="ph-bold ph-plus"></i>
+                            </button>
+                        </div>
+                        <p class="text-[10px] text-yellow-500/80 mt-1 flex items-center gap-1">
+                            <i class="ph-fill ph-warning"></i> Atenção: Os feriados manuais serão aplicados ao
+                            <strong>ano detectado no arquivo</strong>.
+                        </p>
+                    </div>
+
+                    <!-- Toggles -->
+                    <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                        <label class="flex items-center gap-2 p-2 rounded hover:bg-white/5 cursor-pointer">
+                            <input type="checkbox" id="cfg-noturno" class="accent-brand-500">
+                            <span class="text-sm text-slate-300">Adicional Noturno (Urbano)</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded hover:bg-white/5 cursor-pointer">
+                            <input type="checkbox" id="cfg-sabado-util" checked class="accent-brand-500">
+                            <span class="text-sm text-slate-300">Sábado Útil</span>
+                        </label>
+                        <label class="flex items-center gap-2 p-2 rounded hover:bg-white/5 cursor-pointer">
+                            <input type="checkbox" id="cfg-domingo-util" class="accent-brand-500">
+                            <span class="text-sm text-slate-300">Domingo Útil</span>
+                        </label>
+                    </div>
+                </div>
+            </div>
+
+            <div class="p-4 border-t border-white/5 bg-black/20 rounded-b-2xl flex justify-end gap-3 sticky bottom-0">
+                <button onclick="closeConfig()"
+                    class="px-4 py-2 text-slate-400 hover:text-white text-sm font-medium">Cancelar</button>
+                <button onclick="saveConfig()"
+                    class="px-6 py-2 bg-brand-600 hover:bg-brand-500 text-white rounded-lg text-sm font-bold shadow-lg shadow-brand-500/20">Salvar
+                    Alterações</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL DE TERMOS E PRIVACIDADE -->
+    <div id="legal-modal"
+        class="fixed inset-0 z-[60] hidden flex items-center justify-center bg-black/80 backdrop-blur-sm transition-opacity opacity-0 p-4">
+        <div class="bg-[#1e293b] w-full max-w-2xl rounded-2xl border border-white/10 shadow-2xl flex flex-col max-h-[85vh] transform scale-95 transition-transform duration-300"
+            id="legal-content">
+            <div class="p-5 border-b border-white/10 flex justify-between items-center bg-[#1e293b] rounded-t-2xl">
+                <h3 id="legal-title" class="text-xl font-bold text-white">Termos de Uso</h3>
+                <button onclick="closeModal('legal')"
+                    class="text-slate-400 hover:text-white bg-white/5 p-1.5 rounded-lg transition-colors"><i
+                        class="ph ph-x text-lg"></i></button>
+            </div>
+            <div id="legal-body"
+                class="p-6 text-slate-300 text-sm leading-relaxed overflow-y-auto text-content space-y-4">
+                <!-- Conteúdo Injetado via JS -->
+            </div>
+            <div class="p-4 border-t border-white/10 bg-black/20 rounded-b-2xl flex justify-end">
+                <button onclick="closeModal('legal')"
+                    class="px-6 py-2.5 bg-brand-600 hover:bg-brand-500 text-white font-medium rounded-lg transition-colors">Entendi
+                    e Concordo</button>
+            </div>
+        </div>
+    </div>
 
     <div id="toast-container" class="fixed top-6 right-6 z-50 flex flex-col gap-3"></div>
 
     <script>
         // --- CONFIGURAÇÃO ---
-        const API_URL = "https://projetocartaodepontov1.onrender.com/converter";
-        const WAKE_UP_URL = "https://projetocartaodepontov1.onrender.com/";
+        const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
+        // Endpoints: Recalcular usa a mesma rota base mas com uma flag ou payload diferente
+        const API_URL = isLocal ? "http://127.0.0.1:8000/converter" : "/api/converter";
+        const RECALC_URL = isLocal ? "http://127.0.0.1:8000/recalcular" : "/api/recalcular";
+        const WAKE_UP_URL = isLocal ? "http://127.0.0.1:8000/" : "/api/";
 
-        // Elementos Globais
+        // --- Textos Legais (Mantidos) ---
+        const LEGAL_TEXTS = {
+            terms: `
+                <h4 class="text-white font-bold text-base mb-2">1. Natureza do Serviço</h4>
+                <p>O PontoSync é uma ferramenta tecnológica auxiliar destinada à conversão e pré-análise de registros de ponto. <strong>Este sistema NÃO substitui o Relógio Eletrônico de Ponto (REP)</strong> nem o software de tratamento de ponto homologado conforme a Portaria 671 do Ministério do Trabalho e Emprego (MTE).</p>
+                
+                <h4 class="text-white font-bold text-base mb-2">2. Responsabilidade do Usuário</h4>
+                <p>O usuário reconhece ser o único responsável pela veracidade, integridade e legalidade dos documentos enviados para processamento. Cabe ao usuário (empregador ou contador) a conferência final dos cálculos antes de qualquer pagamento ou lançamento em folha.</p>
+                
+                <h4 class="text-white font-bold text-base mb-2">3. Limitação de Responsabilidade</h4>
+                <p>Os desenvolvedores do PontoSync não se responsabilizam por eventuais erros de leitura da Inteligência Artificial, inconsistências nos cálculos decorrentes de configurações incorretas por parte do usuário, ou quaisquer multas, processos trabalhistas ou prejuízos financeiros decorrentes do uso desta ferramenta.</p>
+                
+                <h4 class="text-white font-bold text-base mb-2">4. Alterações</h4>
+                <p>Reservamo-nos o direito de atualizar estes termos a qualquer momento para refletir mudanças na legislação ou na funcionalidade do sistema.</p>
+            `,
+            privacy: `
+                <h4 class="text-white font-bold text-base mb-2">1. Coleta de Dados</h4>
+                <p>Para realizar a conversão, coletamos temporariamente os arquivos (imagens, PDFs, textos) enviados por você. Estes arquivos podem conter dados pessoais de terceiros (funcionários), como nome e horários de trabalho.</p>
+                
+                <h4 class="text-white font-bold text-base mb-2">2. Finalidade e Processamento</h4>
+                <p>Os dados são utilizados exclusivamente para a extração das informações de horário via Inteligência Artificial (Google Gemini API). Não utilizamos estes dados para fins de marketing, não vendemos para terceiros e não os utilizamos para treinamento de modelos públicos de IA.</p>
+                
+                <h4 class="text-white font-bold text-base mb-2">3. Retenção de Dados</h4>
+                <p>Os arquivos originais e os resultados extraídos são processados em memória volátil e descartados logo após a geração do download, salvo quando necessário para logs técnicos de erro (sem identificação pessoal). Não mantemos histórico permanente dos seus funcionários.</p>
+                
+                <h4 class="text-white font-bold text-base mb-2">4. Controlador vs. Operador (LGPD)</h4>
+                <p>Nos termos da Lei 13.709/2018 (LGPD), você (usuário) atua como <strong>Controlador</strong> dos dados e o PontoSync atua como <strong>Operador</strong>. É sua responsabilidade garantir que possui base legal para processar os dados dos titulares (funcionários) nesta plataforma.</p>
+            `
+        };
+
+        // --- Elementos Globais ---
         const dropZone = document.getElementById('drop-zone');
         const fileInput = document.getElementById('fileInput');
         const fileInfo = document.getElementById('file-info');
+        const fileList = document.getElementById('file-list');
         const textContent = document.getElementById('text-content');
         const fileNameDisplay = document.getElementById('filename');
         const clearBtn = document.getElementById('clear-file');
         const submitBtn = document.getElementById('submit-btn');
-        const uploadIcon = document.getElementById('upload-icon');
-        const btnText = document.getElementById('btn-text');
-        const btnIcon = document.getElementById('btn-icon');
         const form = document.getElementById('upload-form');
         const previewContainer = document.getElementById('preview-container');
         const previewContent = document.getElementById('preview-content');
-        const downloadBtn = document.getElementById('download-btn');
+        const downloadBtn = document.getElementById('action-btn');
+        const downloadIcon = document.getElementById('action-icon');
+        const downloadText = document.getElementById('action-text');
+        const lgpdCheckbox = document.getElementById('lgpd-consent');
+        const consentContainer = document.getElementById('consent-container');
+        const changesWarning = document.getElementById('changes-warning');
 
+        // Elementos de Configuração (Mantidos)
+        const configModal = document.getElementById('config-modal');
+        const configContent = document.getElementById('config-content');
+        const configBtn = document.getElementById('config-btn');
+        const activeRuleIndicator = document.getElementById('active-rule-indicator');
+        const ruleSummary = document.getElementById('rule-summary');
+        const coachmark = document.getElementById('coachmark');
+
+        // Elementos Legais (Mantidos)
+        const legalModal = document.getElementById('legal-modal');
+        const legalContent = document.getElementById('legal-content');
+        const legalTitle = document.getElementById('legal-title');
+        const legalBody = document.getElementById('legal-body');
+
+        // Elementos do Form de Config (Mantidos)
+        const selectJornada = document.getElementById('cfg-jornada');
+        const customJornadaContainer = document.getElementById('custom-jornada-container');
+        const customJornadaInput = document.getElementById('cfg-jornada-custom');
+        const intervaloCheck = document.getElementById('cfg-intervalo-auto');
+        const intervaloGroup = document.getElementById('cfg-intervalo-input-group');
+        const holidayInput = document.getElementById('holiday-input');
+        const holidayTagsContainer = document.getElementById('holiday-tags-container');
+
+        let holidaySet = new Set();
+
+        // --- ESTADO GLOBAL DO APP (Level 2) ---
+        let currentSettings = {
+            // Novos Campos
+            empresa_nome: "",
+            empresa_cnpj: "",
+            escala_tipo: "clt_5x2_padrao",
+            data_inicio_escala: "", // YYYY-MM-DD
+            // Campos Existentes
+            jornada_minutos: 480, tolerancia: 10, regime: 'pagamento', intervalo_auto: false, intervalo_minutos: 60,
+            extra_util: 50, extra_fds: 100, feriados: [], noturno_ativo: false, sabado_util: true, domingo_util: false
+        };
         let currentBase64File = null;
         let currentFileName = "";
+        let globalResponseData = null; // Armazena o JSON completo retornado da API
+        let isDirty = false; // Rastreia se houve edição
 
-        // === OTIMIZAÇÃO 3: WAKE UP RENDER (Acordar o servidor) ===
-        window.addEventListener('DOMContentLoaded', () => {
-            console.log("Tentando acordar o servidor...");
-            fetch(WAKE_UP_URL)
-                .then(() => console.log("Backend acordado! ☕"))
-                .catch(() => console.log("Backend ainda dormindo ou acordando..."));
-        });
-
-        // --- Event Listeners UI ---
-        dropZone.addEventListener('click', (e) => { if(e.target !== clearBtn) fileInput.click(); });
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-brand-500', 'bg-white/5'); });
-        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-brand-500', 'bg-white/5'); });
-        dropZone.addEventListener('drop', (e) => {
-            e.preventDefault(); dropZone.classList.remove('border-brand-500', 'bg-white/5');
-            if (e.dataTransfer.files.length) {
-                const dt = new DataTransfer();
-                for (let i = 0; i < e.dataTransfer.files.length; i++) dt.items.add(e.dataTransfer.files[i]);
-                fileInput.files = dt.files;
-                handleFiles(fileInput.files);
+        // CATALOGO_JORNADAS_CLT - Espelha a estrutura do backend para sincronização
+        const CATALOGO_JORNADAS_CLT = {
+            'clt_5x2_padrao': {
+                nome: '5x2 Padrão (44h)',
+                meta_diaria_min: 480,
+                sabado_util_automatico: true  // Sábado útil é AUTOMÁTICO nesta escala
+            },
+            'clt_5x2_comp': {
+                nome: '5x2 Compensado',
+                meta_diaria_min: 528,
+                sabado_util_automatico: false // Usuário controla
+            },
+            'clt_6x1_com': {
+                nome: '6x1 Comércio',
+                meta_diaria_min: 440,
+                sabado_util_automatico: true  // Sábado útil é AUTOMÁTICO nesta escala
+            },
+            'clt_12x36': {
+                nome: '12x36 (Plantão)',
+                meta_diaria_min: 720,
+                sabado_util_automatico: false // Usuário controla
+            },
+            'clt_5x1': {
+                nome: '5x1 (Ciclo)',
+                meta_diaria_min: 480,
+                sabado_util_automatico: false // Usuário controla
+            },
+            'estagio_6h': {
+                nome: 'Estágio 6h',
+                meta_diaria_min: 360,
+                sabado_util_automatico: false // Usuário controla
+            },
+            'clt_personalizada': {
+                nome: 'Personalizada',
+                meta_diaria_min: null,
+                sabado_util_automatico: false // Usuário controla
             }
-        });
-        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFiles(fileInput.files); });
-        clearBtn.addEventListener('click', (e) => { e.stopPropagation(); resetUI(); });
+        };
 
-        // --- Download e Compartilhamento (Web Share API) ---
-        downloadBtn.addEventListener('click', async () => {
+        // Inicialização
+        window.addEventListener('DOMContentLoaded', () => {
+            fetch(WAKE_UP_URL).catch(() => { });
+            loadSettings();
+        });
+
+        // --- NOVO v3.5: MÁSCARA HH:MM E SINCRONIZAÇÃO BLINDADA ---
+
+        // Função de máscara HH:MM automática (entrada em tempo real)
+        window.applyTimeMask = function (inputElement) {
+            let value = inputElement.value.replace(/\D/g, '');
+
+            if (value.length > 0) {
+                if (value.length <= 2) {
+                    // Apenas horas
+                    value = value;
+                } else if (value.length <= 4) {
+                    // HH:MM
+                    const hh = value.substring(0, 2);
+                    const mm = value.substring(2, 4);
+                    value = `${hh}:${mm}`;
+                }
+
+                // Valida horas (0-23) e minutos (0-59)
+                const parts = value.split(':');
+                const horas = parseInt(parts[0]) || 0;
+                const minutos = parseInt(parts[1]) || 0;
+
+                if (horas > 23) {
+                    inputElement.value = '23:59';
+                } else if (minutos > 59) {
+                    inputElement.value = `${String(horas).padStart(2, '0')}:59`;
+                } else {
+                    inputElement.value = value;
+                }
+            } else {
+                inputElement.value = '';
+            }
+        };
+
+        // Função chamada sempre que o usuário altera um SLOT de horário (4 colunas)
+        window.syncInput = function (funcIdx, dayIdx, slotName, value) {
+            // Sincroniza a entrada do usuário no appState.lastResponse.
+            // slotName: 'entrada_1', 'saida_1', 'entrada_2', 'saida_2'
+            // CRÍTICO v3.5: Campo vazio = null (não string vazia)
+
+            if (!globalResponseData || !globalResponseData.preview) return;
+
+            // Garante que a estrutura de 4 colunas existe
+            if (!globalResponseData.preview[funcIdx].dias[dayIdx].batidas_4cols) {
+                globalResponseData.preview[funcIdx].dias[dayIdx].batidas_4cols = {
+                    entrada_1: null,
+                    saida_1: null,
+                    entrada_2: null,
+                    saida_2: null
+                };
+            }
+
+            // CRÍTICO: Converte string vazia para null
+            const valorNormalizado = value && value.trim() ? value.trim() : null;
+            globalResponseData.preview[funcIdx].dias[dayIdx].batidas_4cols[slotName] = valorNormalizado;
+
+            // Marca como sujo
+            if (!isDirty) {
+                isDirty = true;
+                updateDownloadButtonState();
+            }
+        };
+
+        // Função para reconstruir a string de batidas a partir das 4 colunas
+        function reconstructBatidasString(batidas_4cols) {
+            if (!batidas_4cols) return "";
+
+            const slots = ['entrada_1', 'saida_1', 'entrada_2', 'saida_2'];
+            const valores = slots.map(slot => batidas_4cols[slot]).filter(v => v && v.trim());
+
+            return valores.join(' → ');
+        }
+
+        // NOVO v4.0: Mapear string "HH:MM → HH:MM" para 4 colunas automaticamente
+        function mapearBatidasStringParaQuatroColunas(batidas_str) {
+            /*
+            Converte "08:00 → 12:00 → 13:00 → 18:00" em objeto de 4 colunas.
+            
+            Mapeamento:
+            - 2 batidas: entrada_1, saida_2 (jornada direta, sem intervalo)
+            - 3 batidas: entrada_1, saida_1, entrada_2 (falta saida_2)
+            - 4+ batidas: entrada_1, saida_1, entrada_2, saida_2 (completo)
+            */
+            if (!batidas_str || batidas_str.trim() === "") {
+                return { entrada_1: null, saida_1: null, entrada_2: null, saida_2: null };
+            }
+
+            // Parse: "08:00 → 12:00 → 13:00 → 18:00" → ["08:00", "12:00", "13:00", "18:00"]
+            const horarios = batidas_str.split('→').map(h => h.trim()).filter(h => h);
+
+            const resultado = { entrada_1: null, saida_1: null, entrada_2: null, saida_2: null };
+
+            if (horarios.length >= 1) resultado.entrada_1 = horarios[0];
+            if (horarios.length >= 2) resultado.saida_1 = horarios[1];
+            if (horarios.length >= 3) resultado.entrada_2 = horarios[2];
+            if (horarios.length >= 4) resultado.saida_2 = horarios[3];
+
+            // Se tem apenas 2 batidas, monta como "entrada → saída" (jornada direta)
+            if (horarios.length === 2) {
+                resultado.entrada_1 = horarios[0];
+                resultado.saida_1 = null;
+                resultado.entrada_2 = null;
+                resultado.saida_2 = horarios[1];
+            }
+
+            return resultado;
+        }
+
+        // --- MANIPULAÇÃO DE STATUS (NOVO: Abono/Falta) ---
+        window.handleStatusChange = function (funcIndex, dayIndex, selectElement) {
+            const newStatus = selectElement.value;
+
+            // Atualiza o JSON global (dados)
+            if (globalResponseData && globalResponseData.preview) {
+                globalResponseData.preview[funcIndex].dias[dayIndex].status = newStatus;
+                if (!isDirty) { isDirty = true; updateDownloadButtonState(); }
+            }
+
+            // --- MANIPULAÇÃO VISUAL IMEDIATA (FEEDBACK INSTANTÂNEO) ---
+            const rowEl = document.getElementById(`row-${funcIndex}-${dayIndex}`);
+            const saldoEl = document.getElementById(`saldo-${funcIndex}-${dayIndex}`);
+            const iconBox = document.getElementById(`icon-box-${funcIndex}-${dayIndex}`);
+            const inputEl = document.getElementById(`input-${funcIndex}-${dayIndex}`);
+
+            // Lista de status que "limpam" o dia
+            const positiveStatuses = ['ABONO', 'ATESTADO', 'FOLGA', 'FERIADO', 'DSR'];
+
+            if (positiveStatuses.includes(newStatus)) {
+                // 1. Muda cor do Select
+                selectElement.style.color = '#22d3ee'; // Cyan-400
+
+                // 2. NEUTRALIZADO v4.0: Não prediz saldo - indica recálculo pendente
+                // Trade-off: UX menos reativa, mas garante que backend é fonte única de verdade
+                saldoEl.textContent = "...";
+                saldoEl.className = "font-mono font-bold text-slate-400 animate-pulse";
+
+                // 3. Remove o vermelho do fundo da linha, indica estado pendente
+                rowEl.className = "flex justify-between items-center text-sm p-3 rounded-lg transition-colors bg-slate-700/20 border border-slate-500/20";
+
+                // 4. Muda o ícone para indicar estado pendente de recálculo
+                iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-cyan-500/10 text-cyan-400";
+                iconBox.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i>';
+
+                // 5. Visual neutro para inputs
+                if (inputEl) {
+                    inputEl.classList.remove('text-red-300');
+                    inputEl.classList.add('text-slate-500');
+                }
+
+            } else if (newStatus === 'FALTA') {
+                // NEUTRALIZADO v4.0: Visual de Falta, mas sem predizer saldo
+                selectElement.style.color = '#f87171'; // Red
+
+                // Indica recálculo pendente em vez de predizer valor
+                saldoEl.textContent = "...";
+                saldoEl.className = "font-mono font-bold text-red-400 animate-pulse";
+
+                rowEl.className = "flex justify-between items-center text-sm p-3 rounded-lg transition-colors bg-red-500/5 border border-red-500/10";
+                iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-red-500/10 text-red-400";
+                iconBox.innerHTML = '<i class="ph-bold ph-arrows-clockwise"></i>';
+
+            } else {
+                // "NORMAL" - Restaura visual original
+                selectElement.style.color = '#94a3b8'; // Slate
+
+                // Restaura o valor original que veio do banco de dados
+                const originalSaldo = saldoEl.getAttribute('data-original');
+                saldoEl.textContent = originalSaldo;
+
+                if (originalSaldo.includes('-')) {
+                    saldoEl.className = "font-mono font-bold text-red-400";
+                    rowEl.className = "flex justify-between items-center text-sm p-3 rounded-lg transition-colors bg-red-500/5 border border-red-500/10";
+                    iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-red-500/10 text-red-400";
+                    iconBox.innerHTML = '<i class="ph-fill ph-warning"></i>';
+                } else {
+                    saldoEl.className = "font-mono font-bold text-emerald-400";
+                    rowEl.className = "flex justify-between items-center text-sm p-3 rounded-lg transition-colors hover:bg-white/5";
+                    iconBox.className = "w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 bg-slate-800 text-slate-400";
+                    iconBox.innerHTML = '<i class="ph ph-calendar-blank"></i>';
+                }
+            }
+        };
+
+        function updateDownloadButtonState() {
+            if (isDirty) {
+                // Estado: Precisa Recalcular
+                changesWarning.classList.remove('hidden');
+                downloadBtn.className = "flex-1 bg-brand-600 hover:bg-brand-500 text-white p-4 rounded-xl font-bold shadow-lg shadow-brand-500/20 transition-all flex items-center justify-center gap-2 group border border-brand-400";
+                downloadIcon.className = "ph-bold ph-arrows-clockwise text-xl group-hover:rotate-180 transition-transform duration-500";
+                downloadText.textContent = "Recalcular e Baixar Excel";
+                // Remove o comportamento de download direto e adiciona o de recalculo
+                downloadBtn.onclick = recalculateAndDownload;
+            } else {
+                // Estado: Download Direto (Original)
+                changesWarning.classList.add('hidden');
+                downloadBtn.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white p-4 rounded-xl font-semibold shadow-lg shadow-emerald-500/20 transition-all flex items-center justify-center gap-2 group";
+                downloadIcon.className = "ph ph-download-simple text-xl group-hover:animate-bounce";
+                downloadText.textContent = "Baixar Excel Original";
+                downloadBtn.onclick = downloadCurrentFile;
+            }
+        }
+
+        // Função de Recálculo REFATORADA v3.0 (INFALÍVEL)
+        // v3.5: Ciclo de Recálculo Infalível com Pasos Explícitos
+        async function recalculateAndDownload() {
+            // UI Loading
+            downloadText.textContent = "Recalculando...";
+            downloadIcon.className = "ph ph-spinner animate-spin text-xl";
+            downloadBtn.disabled = true;
+
+            try {
+                console.log("🔄 Iniciando recalculateAndDownload()...");
+
+                // ============================================================
+                // PASSO 1: COLETA - Reconstrói strings a partir das 4 colunas
+                // ============================================================
+                console.log("📋 Passo 1: Reconstituindo batidas_4cols → strings");
+                for (let funcIdx = 0; funcIdx < globalResponseData.preview.length; funcIdx++) {
+                    const func_data = globalResponseData.preview[funcIdx];
+                    for (let dayIdx = 0; dayIdx < func_data.dias.length; dayIdx++) {
+                        const dia_info = func_data.dias[dayIdx];
+                        // Se há 4 colunas, reconstrói a string
+                        if (dia_info.batidas_4cols) {
+                            dia_info.batidas = reconstructBatidasString(dia_info.batidas_4cols);
+                        }
+                    }
+                }
+                console.log("✅ Passo 1 completo");
+
+                // ============================================================
+                // PASSO 2: ENVIO - POST para /recalcular com payload completo
+                // ============================================================
+                const payload = {
+                    dados_corrigidos: globalResponseData,
+                    configuracoes: currentSettings
+                };
+
+                console.log("📤 Enviando payload para /recalcular:", JSON.stringify(payload, null, 2).substring(0, 500) + "...");
+
+                const response = await fetch(RECALC_URL, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify(payload)
+                });
+
+                console.log("📥 Status HTTP:", response.status, response.statusText);
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (parseError) {
+                    console.error("❌ Erro ao parsear JSON da resposta:", parseError);
+                    throw new Error("Erro ao processar resposta do servidor");
+                }
+
+                if (!response.ok) {
+                    const errorMsg = data.erro || "Erro no recálculo do servidor";
+                    console.error("❌ Resposta de erro do servidor:", data);
+                    if (data.warnings && data.warnings.length > 0) {
+                        console.warn("⚠️ Warnings:", data.warnings);
+                    }
+                    throw new Error(errorMsg);
+                }
+                console.log("✅ Resposta recalcular recebida:", data);
+
+                // ============================================================
+                // PASSO 3: SUBSTITUIÇÃO INTEGRAL (CRÍTICO - evita sumiço)
+                // Substitui integralmente o objeto globalResponseData
+                // ============================================================
+                globalResponseData = data;
+                currentBase64File = data.file;
+                currentFileName = data.filename || currentFileName.replace('.xlsx', '_recalc.xlsx');
+
+                // ============================================================
+                // PASSO 4: RENDERIZAÇÃO IMEDIATA (redesenha ANTES do download)
+                // ============================================================
+                renderCards(data.preview);
+
+                showToast("Planilha recalculada com sucesso!", "success");
+
+                // ============================================================
+                // PASSO 5: DOWNLOAD (somente DEPOIS da renderização visual)
+                // ============================================================
+                downloadCurrentFile();
+
+                // ============================================================
+                // PASSO 6: RESET de estado
+                // ============================================================
+                isDirty = false;
+                updateDownloadButtonState();
+
+            } catch (error) {
+                console.error('Erro em recalculateAndDownload:', error);
+                showToast("Erro ao recalcular: " + error.message, "error");
+                updateDownloadButtonState();
+            } finally {
+                downloadBtn.disabled = false;
+            }
+        }
+
+        function downloadCurrentFile() {
             if (currentBase64File) {
-                // Download Padrão (PC)
                 const link = document.createElement('a');
                 link.href = `data:application/vnd.openxmlformats-officedocument.spreadsheetml.sheet;base64,${currentBase64File}`;
-                link.download = currentFileName;
+                const fileName = currentFileName;
+                link.download = fileName;
                 document.body.appendChild(link);
                 link.click();
                 link.remove();
-                showToast('Download iniciado!', 'success');
+                if (!isDirty) showToast('Download iniciado!', 'success');
+            }
+        }
 
-                // === OTIMIZAÇÃO 4: COMPARTILHAR NO MOBILE ===
-                if (navigator.share) {
-                    try {
-                        const byteCharacters = atob(currentBase64File);
-                        const byteNumbers = new Array(byteCharacters.length);
-                        for (let i = 0; i < byteCharacters.length; i++) byteNumbers[i] = byteCharacters.charCodeAt(i);
-                        const byteArray = new Uint8Array(byteNumbers);
-                        const file = new File([byteArray], currentFileName, { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+        // --- SEGURANÇA E AUXILIARES ---
+        function escapeHtml(text) {
+            if (!text) return text;
+            return String(text).replace(/[&<>"']/g, function (m) {
+                return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' }[m];
+            });
+        }
 
-                        await navigator.share({
-                            files: [file],
-                            title: 'Relatório de Ponto',
-                            text: 'Segue o relatório de ponto calculado.',
-                        });
-                    } catch (error) {
-                        console.log('Compartilhamento ignorado');
+        // ... (Mantendo as funções de Modal, Config, Feriados iguais ao anterior) ...
+
+        window.openModal = function (type) {
+            if (type === 'terms') { legalTitle.textContent = "Termos de Uso"; legalBody.innerHTML = LEGAL_TEXTS.terms; }
+            else { legalTitle.textContent = "Política de Privacidade"; legalBody.innerHTML = LEGAL_TEXTS.privacy; }
+            legalModal.classList.remove('hidden');
+            setTimeout(() => { legalModal.classList.remove('opacity-0'); legalContent.classList.remove('scale-95'); legalContent.classList.add('scale-100'); }, 10);
+        }
+        window.closeModal = function (id) {
+            const modal = id === 'legal' ? legalModal : configModal;
+            const content = id === 'legal' ? legalContent : configContent;
+            if (modal) { modal.classList.add('opacity-0'); if (content) { content.classList.remove('scale-100'); content.classList.add('scale-95'); } setTimeout(() => { modal.classList.add('hidden'); }, 300); }
+        }
+
+        configBtn.addEventListener('click', () => { if (coachmark) coachmark.style.display = 'none'; openConfig(); });
+        window.openConfig = function () { /* ... lógica de abrir config (mantida) ... */
+            // Popula os novos campos de Identificação Corporativa
+            document.getElementById('cfg-empresa-nome').value = currentSettings.empresa_nome || '';
+            document.getElementById('cfg-empresa-cnpj').value = currentSettings.empresa_cnpj || '';
+
+            // Popula os novos campos de Escala
+            document.getElementById('cfg-escala-tipo').value = currentSettings.escala_tipo || 'clt_5x2_padrao';
+            document.getElementById('cfg-data-inicio-escala').value = currentSettings.data_inicio_escala || '';
+
+            // Re-inserindo lógica mínima para abrir config
+            const presets = ['480', '528', '360', '720', '440']; // Adicionado 440
+            const currentMinsStr = String(currentSettings.jornada_minutos);
+            if (presets.includes(currentMinsStr)) { selectJornada.value = currentMinsStr; }
+            else { selectJornada.value = 'custom'; const h = Math.floor(currentSettings.jornada_minutos / 60); const m = currentSettings.jornada_minutos % 60; customJornadaInput.value = `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`; }
+
+            // ... resto dos campos ...
+            document.getElementById('cfg-tolerancia').value = currentSettings.tolerancia;
+            document.getElementById('cfg-regime').value = currentSettings.regime || 'pagamento';
+            document.getElementById('cfg-extra-util').value = currentSettings.extra_util;
+            document.getElementById('cfg-extra-fds').value = currentSettings.extra_fds;
+
+            holidaySet.clear();
+            if (Array.isArray(currentSettings.feriados)) { currentSettings.feriados.forEach(d => holidaySet.add(d)); }
+            renderHolidays();
+
+            document.getElementById('cfg-intervalo-auto').checked = currentSettings.intervalo_auto;
+            document.getElementById('cfg-intervalo-minutos').value = currentSettings.intervalo_minutos || 60;
+            toggleIntervaloInput();
+            document.getElementById('cfg-noturno').checked = currentSettings.noturno_ativo || false;
+            document.getElementById('cfg-sabado-util').checked = currentSettings.sabado_util;
+            document.getElementById('cfg-domingo-util').checked = currentSettings.domingo_util;
+
+            // Chama o toggle para sincronizar UI baseado na escala selecionada
+            // Isso mostra/esconde a carga horária e auto-seta os valores
+            toggleEscalaOptions();
+
+            configModal.classList.remove('hidden');
+            setTimeout(() => { configModal.classList.remove('opacity-0'); configContent.classList.remove('scale-95'); configContent.classList.add('scale-100'); }, 10);
+        }
+        window.closeConfig = function () { closeModal('config'); }
+        window.saveConfig = function () {
+            // ============================================================
+            // NOVO v4.0: Sincronização de Meta por Escala
+            // ============================================================
+            const escalaTipo = document.getElementById('cfg-escala-tipo').value;
+            let minutosFinais = 480;  // Padrão seguro
+
+            // Mapeia escala → minutos (Meta Diária)
+            const META_POR_ESCALA = {
+                'clt_5x2_padrao': 480,   // 8h
+                'clt_5x2_comp': 528,     // 8h48
+                'clt_6x1_com': 440,      // 7h20
+                'clt_5x1': 480,          // 8h (ciclo)
+                'clt_12x36': 720,        // 12h
+                'estagio_6h': 360,       // 6h
+                'clt_personalizada': null // user decides
+            };
+
+            // Prioridade 1: Se escala tem meta definida, usa ela
+            if (META_POR_ESCALA[escalaTipo] !== undefined && META_POR_ESCALA[escalaTipo] !== null) {
+                minutosFinais = META_POR_ESCALA[escalaTipo];
+            }
+
+            // Prioridade 2: Se for personalizada, lê do select de horas
+            else if (escalaTipo === 'clt_personalizada') {
+                if (selectJornada.value === 'custom') {
+                    if (customJornadaInput.value) {
+                        const [h, m] = customJornadaInput.value.split(':').map(Number);
+                        minutosFinais = (h * 60) + m;
                     }
+                } else if (selectJornada.value) {
+                    minutosFinais = parseInt(selectJornada.value) || 480;
                 }
             }
-        });
+
+            // Validação: minutosFinais deve ser um número válido
+            if (isNaN(minutosFinais) || minutosFinais <= 0) {
+                minutosFinais = 480;
+            }
+
+            // Log de sincronização
+            const horas = Math.floor(minutosFinais / 60);
+            const mins = minutosFinais % 60;
+            console.log(`🚀 Sincronizando Escala: ${escalaTipo} | Meta: ${horas}h${mins}min (${minutosFinais} min)`);
+
+            const nomeEmpresa = document.getElementById('cfg-empresa-nome').value;
+            const cnpjEmpresa = document.getElementById('cfg-empresa-cnpj').value;
+            currentSettings = {
+                // Novos Campos
+                empresa_nome: nomeEmpresa,
+                empresa_cnpj: cnpjEmpresa,
+                escala_tipo: escalaTipo,
+                data_inicio_escala: document.getElementById('cfg-data-inicio-escala').value,
+                // Campos Existentes
+                jornada_minutos: minutosFinais,
+                tolerancia: parseInt(document.getElementById('cfg-tolerancia').value) || 10,
+                regime: document.getElementById('cfg-regime').value,
+                intervalo_auto: document.getElementById('cfg-intervalo-auto').checked,
+                intervalo_minutos: parseInt(document.getElementById('cfg-intervalo-minutos').value) || 60,
+                extra_util: parseFloat(document.getElementById('cfg-extra-util').value),
+                extra_fds: parseFloat(document.getElementById('cfg-extra-fds').value),
+                feriados: Array.from(holidaySet),
+                noturno_ativo: document.getElementById('cfg-noturno').checked,
+                sabado_util: document.getElementById('cfg-sabado-util').checked,
+                domingo_util: document.getElementById('cfg-domingo-util').checked
+            };
+            localStorage.setItem('pontosync_settings', JSON.stringify(currentSettings));
+            updateRuleIndicator();
+            closeConfig(); showToast('✅ Regras salvas com meta sincronizada!', 'success');
+        }
+        function loadSettings() {
+            const saved = localStorage.getItem('pontosync_settings');
+            if (saved) try { currentSettings = { ...currentSettings, ...JSON.parse(saved) }; } catch (e) { }
+            updateRuleIndicator();
+        }
+        function updateRuleIndicator() {
+            const horas = Math.floor(currentSettings.jornada_minutos / 60);
+            const mins = currentSettings.jornada_minutos % 60;
+            const jornadaStr = mins > 0 ? `${horas}h${mins}` : `${horas}h`;
+
+            // Informações detalhadas da escala
+            let escalaDescricao = "";
+            switch (currentSettings.escala_tipo) {
+                case 'clt_5x2_padrao': escalaDescricao = "5x2 Padrão (44h)"; break;
+                case 'clt_6x1_com': escalaDescricao = "6x1 Comércio (44h)"; break;
+                case 'clt_5x2_comp': escalaDescricao = "5x2 Compensado (44h)"; break;
+                case 'clt_12x36': escalaDescricao = "12x36 Plantão"; break;
+                case 'clt_parcial_30h': escalaDescricao = "Parcial 30h"; break;
+                default: escalaDescricao = "Personalizada";
+            }
+
+            let txt = `🔄 ${escalaDescricao} | Tol. ${currentSettings.tolerancia}min`;
+            if (currentSettings.noturno_ativo) txt += " | 🌙 Noturno Ativo";
+
+            ruleSummary.textContent = txt;
+        }
+
+        window.toggleCustomJornada = function () { if (selectJornada.value === 'custom') { customJornadaContainer.classList.remove('hidden'); } else { customJornadaContainer.classList.add('hidden'); } }
+        window.toggleEscalaOptions = function () {
+            const tipo = document.getElementById('cfg-escala-tipo').value;
+            const sabadoUtilCheckbox = document.getElementById('cfg-sabado-util');
+
+            // Containers
+            const cicloContainer = document.getElementById('escala-ciclo-container');
+            const cargaHorariaContainer = document.getElementById('container-carga-horaria');
+
+            // Inputs Controlados
+            const jornadaSelect = document.getElementById('cfg-jornada');
+
+            // 1. Lógica do Ciclo (Data) - Só para 12x36
+            if (tipo === 'clt_12x36') {
+                cicloContainer.classList.remove('hidden');
+            } else {
+                cicloContainer.classList.add('hidden');
+            }
+
+            // 2. Lógica da Carga Horária (Automática vs Manual)
+            if (tipo === 'clt_personalizada') {
+                // Modo Manual: Mostra o select de horas para o usuário decidir
+                cargaHorariaContainer.classList.remove('hidden');
+            } else {
+                // Modo Automático: Esconde o select e define o valor nos bastidores
+                cargaHorariaContainer.classList.add('hidden');
+
+                // Auto-set dos valores baseados na escala
+                if (tipo === 'clt_12x36') jornadaSelect.value = '720';      // 12h
+                else if (tipo === 'clt_5x2_padrao') jornadaSelect.value = '480'; // 8h
+                else if (tipo === 'clt_5x2_comp') jornadaSelect.value = '528';   // 8h48
+                else if (tipo === 'clt_6x1_com') jornadaSelect.value = '440';    // 7h20
+                else if (tipo === 'clt_5x1') jornadaSelect.value = '480';        // 8h (ciclo)
+                else if (tipo === 'estagio_6h') jornadaSelect.value = '360';     // 6h
+
+                // Garante que a UI de hora customizada (hh:mm) também se esconda se não for usada
+                toggleCustomJornada();
+            }
+
+            // ============================================================
+            // 3. NOVO v4.0: Lógica de Sábado Útil - Disable automático
+            // ============================================================
+            // Se a escala define automaticamente Sábado Útil, desabilita checkbox
+            const escalaCatalog = CATALOGO_JORNADAS_CLT[tipo];
+            if (escalaCatalog && escalaCatalog.sabado_util_automatico) {
+                // Escala automática: desabilita checkbox e força valor TRUE
+                sabadoUtilCheckbox.disabled = true;
+                sabadoUtilCheckbox.checked = true;
+                sabadoUtilCheckbox.parentElement.style.opacity = '0.6';
+                sabadoUtilCheckbox.parentElement.style.cursor = 'not-allowed';
+                sabadoUtilCheckbox.parentElement.title = '(Automático para esta escala)';
+            } else {
+                // Escala manual: re-habilita checkbox
+                sabadoUtilCheckbox.disabled = false;
+                sabadoUtilCheckbox.parentElement.style.opacity = '1';
+                sabadoUtilCheckbox.parentElement.style.cursor = 'pointer';
+                sabadoUtilCheckbox.parentElement.title = '';
+            }
+        }
+        window.toggleIntervaloInput = function () { if (intervaloCheck.checked) { intervaloGroup.classList.remove('hidden'); } else { intervaloGroup.classList.add('hidden'); } }
+
+        // Feriados Logic
+        holidayInput.addEventListener('input', (e) => { let val = e.target.value.replace(/\D/g, ''); if (val.length > 4) val = val.substring(0, 4); if (val.length > 2) { val = val.substring(0, 2) + '/' + val.substring(2); } e.target.value = val; });
+        holidayInput.addEventListener('keypress', (e) => { if (e.key === 'Enter') { e.preventDefault(); addHolidayFromInput(); } });
+        window.addHolidayFromInput = function () { const val = holidayInput.value; if (!/^(0[1-9]|[12][0-9]|3[01])\/(0[1-9]|1[0-2])$/.test(val)) { showToast("Data inválida. Use DD/MM", "warning"); return; } holidaySet.add(val); renderHolidays(); holidayInput.value = ''; holidayInput.focus(); }
+        window.removeHoliday = function (dateStr) { holidaySet.delete(dateStr); renderHolidays(); }
+        function renderHolidays() { holidayTagsContainer.innerHTML = ''; holidaySet.forEach(date => { const tag = document.createElement('div'); tag.className = 'flex items-center gap-1.5 px-3 py-1 bg-brand-500/20 border border-brand-500/30 rounded-full text-brand-400 text-xs font-bold animate-slide-up'; tag.innerHTML = `<span>${date}</span><button onclick="removeHoliday('${date}')" class="hover:text-white transition-colors focus:outline-none"><i class="ph-bold ph-x"></i></button>`; holidayTagsContainer.appendChild(tag); }); }
+
+        // --- UPLOAD E RENDERIZAÇÃO (ATUALIZADO) ---
 
         function handleFiles(files) {
-            if(!files[0].name.toLowerCase().endsWith('.txt')) {
-                showToast('Apenas arquivos .txt são permitidos', 'error');
-                return;
+            fileList.innerHTML = '';
+            if (files.length > 0) {
+                for (let i = 0; i < files.length; i++) {
+                    const item = document.createElement('div');
+                    item.className = 'flex items-center gap-2 p-2 bg-white/5 rounded border border-white/5 text-xs text-slate-300';
+                    item.innerHTML = `<i class="ph ph-file text-brand-400"></i> <span class="truncate flex-1">${files[i].name}</span>`;
+                    fileList.appendChild(item);
+                }
             }
-            const count = files.length;
-            fileNameDisplay.textContent = count > 1 ? `${count} arquivos selecionados` : files[0].name;
             textContent.classList.add('hidden');
             fileInfo.classList.remove('hidden');
             fileInfo.classList.add('flex');
-            submitBtn.disabled = false;
+            submitBtn.disabled = !lgpdCheckbox.checked;
+            if (!lgpdCheckbox.checked) {
+                consentContainer.classList.remove('border-white/5', 'bg-white/5');
+                consentContainer.classList.add('border-brand-500', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/50');
+            }
         }
 
         function resetUI() {
             fileInput.value = '';
             currentBase64File = null;
+            globalResponseData = null; // Reset
+            isDirty = false; // Reset
             previewContainer.classList.add('hidden');
             form.classList.remove('hidden');
             textContent.classList.remove('hidden');
             fileInfo.classList.add('hidden');
             fileInfo.classList.remove('flex');
+            fileList.innerHTML = '';
             submitBtn.disabled = true;
-            resetButtonState();
+            lgpdCheckbox.checked = false;
+            consentContainer.classList.remove('border-brand-500', 'bg-brand-500/10', 'ring-1', 'ring-brand-500/50', 'border-emerald-500/30', 'bg-emerald-500/10');
+            consentContainer.classList.add('border-white/5', 'bg-white/5');
+            document.getElementById('btn-text').innerHTML = 'Processar Arquivos';
+            document.getElementById('btn-icon').classList.remove('hidden');
+            dropZone.classList.remove('opacity-50', 'pointer-events-none');
+            updateDownloadButtonState(); // Reset button
         }
 
         form.addEventListener('submit', async (e) => {
             e.preventDefault();
             if (!fileInput.files.length) return;
-            
+            if (!lgpdCheckbox.checked) { showToast("Necessário aceitar LGPD.", 'error'); return; }
+
             const formData = new FormData();
             for (let i = 0; i < fileInput.files.length; i++) formData.append('files', fileInput.files[i]);
+            formData.append('settings', JSON.stringify(currentSettings));
+            // Metadata LGPD
+            formData.append('consent_metadata', JSON.stringify({ accepted: true, timestamp: new Date().toISOString() }));
 
-            setLoading(true);
+            submitBtn.disabled = true;
+            document.getElementById('btn-text').innerHTML = `<i class="ph ph-spinner animate-spin text-lg"></i> Processando...`;
+            dropZone.classList.add('opacity-50', 'pointer-events-none');
+
             try {
-                updateBtnText('Processando na nuvem...');
-                
-                const response = await fetch(API_URL, {
-                    method: "POST",
-                    body: formData
-                });
-
-                if (!response.ok) {
-                    const err = await response.json();
-                    throw new Error(err.erro || 'Erro no servidor');
-                }
-
+                const response = await fetch(API_URL, { method: "POST", body: formData });
+                if (!response.ok) throw new Error('Erro no servidor');
                 const data = await response.json();
-                renderPreview(data.preview);
+
+                // 1. ARMAZENA DADOS GLOBAIS
+                globalResponseData = data;
                 currentBase64File = data.file;
                 currentFileName = data.filename;
+                isDirty = false; // Reset dirty state
+
+                // 2. RENDERIZA
+                renderCards(data.preview);
+                updateDownloadButtonState(); // Configura botão inicial
 
                 form.classList.add('hidden');
+                activeRuleIndicator.classList.add('hidden');
                 previewContainer.classList.remove('hidden');
-                showToast('Cálculo concluído com sucesso!', 'success');
+                showToast('Análise completa!', 'success');
             } catch (error) {
                 console.error(error);
                 showToast(error.message, 'error');
             } finally {
-                resetButtonState();
+                if (previewContainer.classList.contains('hidden')) {
+                    submitBtn.disabled = !lgpdCheckbox.checked;
+                    document.getElementById('btn-text').textContent = 'Processar Arquivos';
+                    dropZone.classList.remove('opacity-50', 'pointer-events-none');
+                }
             }
         });
 
-        function renderPreview(previewData) {
-            previewContent.innerHTML = previewData.map(item => `
-                <div class="bg-white/5 rounded-xl p-5 border border-white/10 hover:border-brand-500/30 transition-all shadow-lg group hover:-translate-y-1">
-                    <div class="flex items-center gap-3 mb-4 pb-3 border-b border-white/5">
-                        <div class="w-10 h-10 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center border border-brand-500/20 group-hover:scale-110 transition-transform">
-                            <i class="ph-fill ph-user text-xl"></i>
+        function renderCards(data) {
+            const container = document.getElementById('preview-content');
+            container.innerHTML = data.map((func, funcIndex) => {
+                const dias = func.dias || [];
+
+                // DOCUMENTADO v4.0: Este cálculo é APENAS para exibição no resumo.
+                // A fonte de verdade é sempre o backend (calcular_relatorio).
+                // Valores de dia.total já vêm calculados do servidor.
+                // Não há recálculo aquí - apenas soma para exibição.
+                let totalTrabalhado = 0; // em minutos
+                let totalNoturnoBase = 0; // em minutos (Base Integral)
+                dias.forEach(dia => {
+                    // Parse: "17:08:00" → 17*60 + 8 = 1028 minutos (valor já vem do backend)
+                    if (dia.total && dia.total.trim()) {
+                        const parts = dia.total.split(':').map(Number);
+                        totalTrabalhado += (parts[0] * 60) + parts[1];
+                    }
+                    // NOTA: noturno_base também vem calculado do backend
+                    if (dia.noturno_base !== undefined && dia.noturno_base > 0) {
+                        totalNoturnoBase += dia.noturno_base;
+                    }
+                });
+
+                // Formata: 1028 min → "17:08"
+                const totalHoras = Math.floor(totalTrabalhado / 60);
+                const totalMins = totalTrabalhado % 60;
+                const totalStr = `${String(totalHoras).padStart(2, '0')}:${String(totalMins).padStart(2, '0')}`;
+
+                // Formata noturno: 139 min → "02:19"
+                const notHoras = Math.floor(totalNoturnoBase / 60);
+                const notMins = totalNoturnoBase % 60;
+                const notStr = `${String(notHoras).padStart(2, '0')}:${String(notMins).padStart(2, '0')}`;
+
+                return `
+                <div class="bg-white/5 border border-white/10 rounded-xl overflow-hidden transition-all hover:border-brand-500/30">
+                    <div class="p-4">
+                        <div class="flex items-center gap-3 mb-4">
+                            <div class="w-12 h-12 rounded-full bg-brand-500/10 text-brand-400 flex items-center justify-center border border-brand-500/20">
+                                <i class="ph-fill ph-user text-2xl"></i>
+                            </div>
+                            <div class="flex-1">
+                                <h4 class="text-white font-bold text-lg uppercase tracking-wide">${escapeHtml(func.funcionario)}</h4>
+                                <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Resumo Mensal</span>
+                            </div>
                         </div>
-                        <div>
-                            <h4 class="text-sm font-bold text-white uppercase tracking-wider">${item.funcionario}</h4>
-                            <span class="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Resumo Mensal</span>
+                        
+                        <!-- NOVO v3.5: Resumo Total + Base Noturno -->
+                        <div class="space-y-3 mb-6 p-4 bg-brand-500/5 border border-brand-500/10 rounded-lg">
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300 text-sm">Total Trabalhado (Relógio)</span>
+                                <span class="font-mono font-bold text-brand-400">${totalStr}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-slate-300 text-sm">Ad. Noturno <span class="text-[9px] text-slate-500">(informativo)</span></span>
+                                <span class="font-mono font-bold text-yellow-400">${notStr}</span>
+                            </div>
                         </div>
+                        
+                        <div class="space-y-3 mb-6">
+                            <div class="flex justify-between items-center text-sm text-slate-400">
+                                <span>Horas Normais</span> <span class="font-mono bg-white/5 px-2 rounded">${escapeHtml(func.normais)}</span>
+                            </div>
+                            <div class="flex justify-between items-center">
+                                <span class="text-white font-bold">Saldo</span>
+                                <span class="font-mono text-xl font-bold ${func.saldo.includes('-') ? 'text-red-400' : 'text-brand-400'}">${escapeHtml(func.saldo)}</span>
+                            </div>
+                        </div>
+
+                        <button onclick="toggleDetails(${funcIndex})" class="w-full py-3 flex items-center justify-center gap-2 text-sm font-medium text-brand-400 bg-brand-500/5 hover:bg-brand-500/10 rounded-lg transition-colors group">
+                            Ver Detalhes Diários <i id="icon-${funcIndex}" class="ph ph-caret-down text-lg"></i>
+                        </button>
                     </div>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex justify-between items-center group/item">
-                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Total de Horas Normais</span>
-                            <span class="font-mono text-slate-200 bg-white/5 px-2 py-0.5 rounded">${item.normais}</span>
-                        </div>
-                        <div class="flex justify-between items-center group/item">
-                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Total de Horas a Dever</span>
-                            <span class="font-mono text-red-300 ${item.dever !== '00:00' ? 'bg-red-500/10' : ''} px-2 py-0.5 rounded">${item.dever}</span>
-                        </div>
-                        <div class="flex justify-between items-center group/item">
-                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Extras (Comum)</span>
-                            <span class="font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded">${item.extras_comuns}</span>
-                        </div>
-                        <div class="flex justify-between items-center group/item">
-                            <span class="text-slate-400 group-hover/item:text-slate-300 transition-colors">Extras (100%)</span>
-                            <span class="font-mono text-emerald-300 bg-emerald-500/10 px-2 py-0.5 rounded">${item.extras_100}</span>
-                        </div>
-                        <div class="pt-3 mt-2 border-t border-dashed border-white/10 flex justify-between items-center">
-                            <span class="font-semibold text-white">Saldo Final</span>
-                            <span class="font-mono font-bold text-lg ${item.saldo.startsWith('-') ? 'text-red-400' : 'text-brand-400'}">${item.saldo}</span>
+
+                    <div id="details-${funcIndex}" class="accordion-content bg-black/20 border-t border-white/5">
+                        <div class="p-4 space-y-2">
+                            ${dias.length > 0 ? dias.map((dia, dayIndex) => {
+                    // Mapeamento automático string → 4 colunas
+                    let batidas_4cols = dia.batidas_4cols;
+                    if (!batidas_4cols && dia.batidas) {
+                        batidas_4cols = mapearBatidasStringParaQuatroColunas(dia.batidas);
+                    }
+                    batidas_4cols = batidas_4cols || { entrada_1: null, saida_1: null, entrada_2: null, saida_2: null };
+
+                    const entrada_1 = batidas_4cols.entrada_1 || '';
+                    const saida_1 = batidas_4cols.saida_1 || '';
+                    const entrada_2 = batidas_4cols.entrada_2 || '';
+                    const saida_2 = batidas_4cols.saida_2 || '';
+
+                    const currentStatus = (dia.status && dia.status !== '') ? dia.status : 'NORMAL';
+
+                    return `
+                                <!-- GRID COMPACTO V4.5 -->
+                                <div id="row-${funcIndex}-${dayIndex}" class="p-3 rounded-lg transition-colors border border-transparent hover:bg-white/5 ${dia.alerta ? 'bg-amber-500/5 border-amber-500/10' : ''}" style="background-color: rgba(30, 41, 59, 0.3);">
+                                    
+                                    <!-- LINHA 1: Cabeçalho do Dia -->
+                                    <div class="flex justify-between items-center mb-2">
+                                        <div class="flex items-center gap-2">
+                                            <div id="icon-box-${funcIndex}-${dayIndex}" class="w-6 h-6 rounded flex items-center justify-center ${dia.alerta ? 'text-amber-400 bg-amber-500/10' : 'text-slate-400 bg-slate-800'}">
+                                                <i class="${dia.alerta ? 'ph-fill ph-warning' : 'ph ph-calendar-blank'} text-xs"></i>
+                                            </div>
+                                            <div>
+                                                <span class="text-white font-bold text-xs block">${escapeHtml(dia.data)}</span>
+                                                <span class="text-[9px] text-slate-500 uppercase tracking-widest">${escapeHtml(dia.dia_semana)}</span>
+                                            </div>
+                                        </div>
+                                        
+                                        <!-- Controle de Status -->
+                                        <select onchange="handleStatusChange(${funcIndex}, ${dayIndex}, this)" 
+                                            class="bg-transparent text-[10px] font-bold uppercase tracking-wide border-none focus:ring-0 cursor-pointer text-right outline-none ${currentStatus === 'FALTA' ? 'text-red-400' : currentStatus === 'NORMAL' ? 'text-slate-500' : 'text-cyan-400'}">
+                                            <option value="NORMAL" ${currentStatus === 'NORMAL' ? 'selected' : ''}>NORMAL</option>
+                                            <option value="FALTA" ${currentStatus === 'FALTA' ? 'selected' : ''}>FALTA</option>
+                                            <option value="ATESTADO" ${currentStatus === 'ATESTADO' ? 'selected' : ''}>ATESTADO</option>
+                                            <option value="FOLGA" ${currentStatus === 'FOLGA' ? 'selected' : ''}>FOLGA</option>
+                                            <option value="FERIADO" ${currentStatus === 'FERIADO' ? 'selected' : ''}>FERIADO</option>
+                                            <option value="DSR" ${currentStatus === 'DSR' ? 'selected' : ''}>DSR</option>
+                                            <option value="ABONO" ${currentStatus === 'ABONO' ? 'selected' : ''}>ABONO</option>
+                                        </select>
+                                    </div>
+                                    
+                                    <!-- LINHA 2: Grid de Inputs e Saldo -->
+                                    <div class="grid grid-cols-5 gap-2 items-center">
+                                        <!-- Inputs (4 Colunas) -->
+                                        <input type="text" placeholder="Ent" maxlength="5" value="${escapeHtml(entrada_1)}"
+                                            class="col-span-1 bg-black/20 border border-white/5 rounded px-1 py-1 text-[10px] text-white text-center font-mono focus:border-brand-500 focus:outline-none focus:bg-brand-500/10 transition-all"
+                                            oninput="applyTimeMask(this); syncInput(${funcIndex}, ${dayIndex}, 'entrada_1', this.value)"
+                                            onblur="syncInput(${funcIndex}, ${dayIndex}, 'entrada_1', this.value)">
+                                            
+                                        <input type="text" placeholder="Sai" maxlength="5" value="${escapeHtml(saida_1)}"
+                                            class="col-span-1 bg-black/20 border border-white/5 rounded px-1 py-1 text-[10px] text-white text-center font-mono focus:border-brand-500 focus:outline-none focus:bg-brand-500/10 transition-all"
+                                            oninput="applyTimeMask(this); syncInput(${funcIndex}, ${dayIndex}, 'saida_1', this.value)"
+                                            onblur="syncInput(${funcIndex}, ${dayIndex}, 'saida_1', this.value)">
+                                            
+                                        <input type="text" placeholder="Ent" maxlength="5" value="${escapeHtml(entrada_2)}"
+                                            class="col-span-1 bg-black/20 border border-white/5 rounded px-1 py-1 text-[10px] text-white text-center font-mono focus:border-brand-500 focus:outline-none focus:bg-brand-500/10 transition-all"
+                                            oninput="applyTimeMask(this); syncInput(${funcIndex}, ${dayIndex}, 'entrada_2', this.value)"
+                                            onblur="syncInput(${funcIndex}, ${dayIndex}, 'entrada_2', this.value)">
+                                            
+                                        <input type="text" placeholder="Sai" maxlength="5" value="${escapeHtml(saida_2)}"
+                                            class="col-span-1 bg-black/20 border border-white/5 rounded px-1 py-1 text-[10px] text-white text-center font-mono focus:border-brand-500 focus:outline-none focus:bg-brand-500/10 transition-all"
+                                            oninput="applyTimeMask(this); syncInput(${funcIndex}, ${dayIndex}, 'saida_2', this.value)"
+                                            onblur="syncInput(${funcIndex}, ${dayIndex}, 'saida_2', this.value)">
+                                            
+                                        <!-- Saldo Diário -->
+                                        <div class="col-span-1 text-right">
+                                            <span id="saldo-${funcIndex}-${dayIndex}" 
+                                                data-original="${escapeHtml(dia.saldo)}"
+                                                class="font-mono font-bold text-[10px] ${dia.alerta && dia.saldo.includes('-') ? 'text-red-400' : dia.alerta ? 'text-amber-400' : 'text-emerald-400'}">
+                                                ${escapeHtml(dia.saldo)}
+                                            </span>
+                                        </div>
+                                    </div>
+                                </div>
+                                `}).join('') : '<p class="text-center text-slate-500 text-xs py-4">Sem detalhes.</p>'}
                         </div>
                     </div>
                 </div>
-            `).join('');
+            `}).join('');
+
+            // ATUALIZADO v4.0: Rodapé com nota CLT + DISCLAIMER DE RESPONSABILIDADE
+            const footer = `
+                <div class="mt-6 space-y-3">
+                    <div class="p-4 bg-slate-900/50 border border-slate-700/30 rounded-lg text-center text-[11px] text-slate-400">
+                        <p class="flex items-center justify-center gap-2">
+                            <i class="ph ph-shield text-slate-500"></i>
+                            🔒 Cálculos baseados na redução de hora noturna <strong>Art. 73 CLT</strong> | Fator: <strong>1.142857</strong> (60min ÷ 52,5min)
+                        </p>
+                    </div>
+                    
+                    <!-- Nota discreta sobre adicional noturno -->
+                    <p class="mt-2 text-[10px] text-slate-500 text-center">
+                        Adicional Noturno é informativo e não soma nas horas trabalhadas.
+                    </p>
+                </div>
+            `;
+
+            container.innerHTML += footer;
         }
 
-        function setLoading(isLoading) {
-            if(isLoading) {
-                submitBtn.disabled = true;
-                btnIcon.classList.add('hidden');
-                btnText.innerHTML = `<i class="ph ph-spinner animate-spin text-lg"></i> Processando...`;
-                dropZone.classList.add('opacity-50', 'pointer-events-none');
-            }
-        }
-        function resetButtonState() {
-            submitBtn.disabled = false;
-            btnIcon.classList.remove('hidden');
-            btnText.textContent = 'Processar Arquivos';
-            dropZone.classList.remove('opacity-50', 'pointer-events-none');
-        }
-        function updateBtnText(text) { btnText.innerHTML = `<i class="ph ph-cpu animate-pulse text-lg"></i> ${text}`; }
-        function showToast(message, type = 'success') {
-            const toast = document.createElement('div');
-            const colors = type === 'success' ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400' : 'bg-red-500/10 border-red-500/20 text-red-400';
-            const icon = type === 'success' ? 'ph-check-circle' : 'ph-warning-circle';
-            toast.className = `flex items-center gap-3 px-4 py-3 rounded-xl border backdrop-blur-md shadow-lg transform transition-all duration-300 translate-x-10 opacity-0 ${colors}`;
-            toast.innerHTML = `<i class="ph ${icon} text-xl"></i><span class="text-sm font-medium">${message}</span>`;
-            document.getElementById('toast-container').appendChild(toast);
-            requestAnimationFrame(() => toast.classList.remove('translate-x-10', 'opacity-0'));
-            setTimeout(() => { toast.classList.add('translate-x-10', 'opacity-0'); setTimeout(() => toast.remove(), 300); }, 4000);
-        }
+        // Listeners auxiliares e Toast (Mantidos)
+        lgpdCheckbox.addEventListener('change', () => { if (fileInput.files.length > 0) submitBtn.disabled = !lgpdCheckbox.checked; });
+        dropZone.addEventListener('click', (e) => { if (e.target !== clearBtn) fileInput.click(); });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('border-brand-500', 'bg-white/5'); });
+        dropZone.addEventListener('dragleave', (e) => { e.preventDefault(); dropZone.classList.remove('border-brand-500', 'bg-white/5'); });
+        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('border-brand-500', 'bg-white/5'); if (e.dataTransfer.files.length) { fileInput.files = e.dataTransfer.files; handleFiles(fileInput.files); } });
+        fileInput.addEventListener('change', () => { if (fileInput.files.length) handleFiles(fileInput.files); });
+        clearBtn.addEventListener('click', (e) => { e.stopPropagation(); resetUI(); });
+        window.toggleDetails = (i) => { const c = document.getElementById(`details-${i}`), ic = document.getElementById(`icon-${i}`); if (c.classList.contains('accordion-open')) { c.classList.remove('accordion-open'); ic.style.transform = 'rotate(0deg)' } else { c.classList.add('accordion-open'); ic.style.transform = 'rotate(180deg)' } };
+        function showToast(msg, type = 'success') { const t = document.createElement('div'), c = type === 'success' ? 'border-emerald-500/20 text-emerald-400' : type === 'warning' ? 'border-yellow-500/20 text-yellow-400' : 'border-red-500/20 text-red-400'; t.className = `flex items-center gap-3 px-4 py-3 rounded-xl border bg-dark-surface backdrop-blur-md shadow-lg transform transition-all duration-300 translate-x-10 opacity-0 ${c}`; t.innerHTML = `<span class="text-sm font-medium">${msg}</span>`; document.getElementById('toast-container').appendChild(t); requestAnimationFrame(() => t.classList.remove('translate-x-10', 'opacity-0')); setTimeout(() => { t.classList.add('translate-x-10', 'opacity-0'); setTimeout(() => t.remove(), 300) }, 4000); }
     </script>
 </body>
-</html>
 
+</html>
