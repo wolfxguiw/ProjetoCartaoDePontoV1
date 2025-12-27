@@ -31,6 +31,7 @@ origins = [
     "http://127.0.0.1:5500",
     "http://localhost:5500",
     "http://localhost:3000",
+    "*",  # Allow all origins for direct API calls
 ]
 
 app.add_middleware(
@@ -808,7 +809,7 @@ def processar_pdf_com_gemini(pdf_bytes: bytes, filename: str) -> List[dict]:
         
         for page_num in range(len(pdf_document)):
             page = pdf_document[page_num]
-            pix = page.get_pixmap(matrix=fitz.Matrix(2, 2))
+            pix = page.get_pixmap()  # Original resolution - saves memory
             img_bytes = pix.tobytes("png")
             
             img = Image.open(io.BytesIO(img_bytes))
