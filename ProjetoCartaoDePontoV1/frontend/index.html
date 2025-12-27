@@ -717,10 +717,11 @@
     <script>
         // --- CONFIGURAÇÃO ---
         const isLocal = window.location.hostname === '127.0.0.1' || window.location.hostname === 'localhost';
-        // Endpoints: Recalcular usa a mesma rota base mas com uma flag ou payload diferente
-        const API_URL = isLocal ? "http://127.0.0.1:8000/converter" : "/api/converter";
-        const RECALC_URL = isLocal ? "http://127.0.0.1:8000/recalcular" : "/api/recalcular";
-        const WAKE_UP_URL = isLocal ? "http://127.0.0.1:8000/" : "/api/";
+        // Endpoints: Chamada direta ao backend Render (bypass proxy Netlify)
+        const RENDER_BACKEND = "https://projetocartaodepontov1.onrender.com";
+        const API_URL = isLocal ? "http://127.0.0.1:8000/converter" : `${RENDER_BACKEND}/converter`;
+        const RECALC_URL = isLocal ? "http://127.0.0.1:8000/recalcular" : `${RENDER_BACKEND}/recalcular`;
+        const WAKE_UP_URL = isLocal ? "http://127.0.0.1:8000/" : `${RENDER_BACKEND}/`;
 
         // --- Textos Legais (Mantidos) ---
         const LEGAL_TEXTS = {
