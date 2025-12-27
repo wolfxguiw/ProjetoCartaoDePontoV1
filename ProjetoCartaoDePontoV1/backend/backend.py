@@ -809,10 +809,16 @@ def processar_pdf_com_gemini(pdf_bytes: bytes, filename: str) -> List[dict]:
         
         for page_num in range(len(pdf_document)):
             page = pdf_document[page_num]
-            pix = page.get_pixmap()  # Original resolution - saves memory
+            pix = page.get_pixmap()  # Original resolution
             img_bytes = pix.tobytes("png")
             
+            # Free pixmap memory immediately
+            del pix
+            
             img = Image.open(io.BytesIO(img_bytes))
+            
+            # Free raw bytes after creating PIL image
+            del img_bytes
             
             prompt = """Analise este cartão de ponto e extraia TODOS os registros visíveis.
 
@@ -852,12 +858,13 @@ IMPORTANTE:
 - Sem explicações
 - SEMPRE complete as datas com mês/ano do cabeçalho"""
 
-            tempos_espera = [5, 10, 20]
-            max_tentativas = len(tempos_espera) + 1
-            
-            print(f"�� Processando página {page_num + 1} com gemini-2.5-flash...")
+            print(f"📄 Processando página {page_num + 1} com gemini-1.5-flash...")
             response = call_gemini_safe(prompt, img)
-            print(f"✅ Sucesso com gemini-2.5-flash")
+            print(f"✅ Sucesso com gemini-1.5-flash")
+            
+            # Free PIL image after API call
+            img.close()
+            del img
             
             if not response:
                 continue
@@ -872,6 +879,10 @@ IMPORTANTE:
             except json.JSONDecodeError as e:
                 print(f"[AVISO] Erro ao parsear JSON (página {page_num + 1}): {e}")
                 continue
+            
+            # Force garbage collection after each page
+            import gc
+            gc.collect()
         
         pdf_document.close()
         return dados
