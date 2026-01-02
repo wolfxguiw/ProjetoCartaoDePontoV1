@@ -473,23 +473,26 @@ def aplicar_tolerancia_clt(variacao_total_dia_minutos: float, tolerancia_limite:
 
 # ===== NOVO v6.0: APURAÇÃO SEMANAL DE EXTRAS (44h CLT) =====
 
-def calcular_extras_semanal(dados_semana: dict, jornada_semanal_minutos: int = 2640, debug: bool = True) -> tuple:
+def calcular_extras_semanal(dados_semana: dict, jornada_semanal_minutos: int = 2640, 
+                             extra_tipo: str = 'semanal', debug: bool = True) -> tuple:
     """
-    NOVO v6.0: Calcula extras com apuração semanal CLT.
+    REFATORADO v6.1: Calcula extras com apuração configurável (diária ou semanal).
     
-    Regras (conforme prática contábil):
-    1. Jornada semanal = 44h (2640 min) - configurável
-    2. Domingo/Feriado = 100% sempre (prioridade legal)
-    3. Excedente real semanal restante = 50%
-    4. Compensação entre dias é permitida
-    5. Não há dupla contagem
+    MODOS:
+    - 'semanal' (CLT tradicional): Compensa faltas com extras na mesma semana.
+      Só gera extra 50% quando total semanal > 44h.
+    - 'diaria' (Sem compensação): Cada dia acima da meta gera extra 50% imediatamente.
+      Faltas ficam em "A Dever" mas NÃO compensam extras.
     
-    NOTA: Os cálculos seguem a semana ISO, não o mês civil.
+    Regras Comuns:
+    1. Domingo/Feriado = 100% sempre (prioridade legal)
+    2. Não há dupla contagem
     
     Args:
         dados_semana: dict com estrutura por semana ISO
         jornada_semanal_minutos: limite semanal (default 2640 = 44h)
-        debug: se True, imprime logs detalhados (desativar em produção)
+        extra_tipo: 'semanal' | 'diaria' (NOVO v6.1)
+        debug: se True, imprime logs detalhados
     
     Returns:
         (total_extras_50, total_extras_100) como timedelta
@@ -500,25 +503,37 @@ def calcular_extras_semanal(dados_semana: dict, jornada_semanal_minutos: int = 2
     total_100 = timedelta(0)
     
     for num_semana, dados in dados_semana.items():
-        # REGRA 1: 100% = todo trabalho em domingo/feriado (prioridade legal)
+        # REGRA COMUM: 100% = todo trabalho em domingo/feriado (prioridade legal)
         extras_100_semana = dados['horas_dom_fer']
         
-        # REGRA 2: Excedente real = total trabalhado - 44h
-        excedente = max(timedelta(0), dados['total'] - jornada_semanal)
-        
-        # REGRA 3: 50% = excedente - já contado como 100% (evita dupla contagem)
-        extras_50_semana = max(timedelta(0), excedente - extras_100_semana)
-        
-        # REGRA 4: Limite - 50% não pode exceder horas úteis trabalhadas
-        extras_50_semana = min(extras_50_semana, dados['horas_uteis'])
-        
-        # LOG para validação (controlado por flag debug)
-        if debug:
-            total_horas = dados['total'].total_seconds() / 3600
-            dom_fer_horas = dados['horas_dom_fer'].total_seconds() / 3600
-            e50_horas = extras_50_semana.total_seconds() / 3600
-            e100_horas = extras_100_semana.total_seconds() / 3600
-            print(f"  📊 Semana {num_semana}: Total={total_horas:.2f}h | Dom/Fer={dom_fer_horas:.2f}h | 50%={e50_horas:.2f}h | 100%={e100_horas:.2f}h")
+        if extra_tipo == 'diaria':
+            # MODO DIÁRIO: Usa extras acumuladas por dia (sem compensação)
+            # O campo 'extras_50_acumulado' é preenchido durante o processamento diário
+            extras_50_semana = dados.get('extras_50_acumulado', timedelta(0))
+            
+            if debug:
+                total_horas = dados['total'].total_seconds() / 3600
+                dom_fer_horas = dados['horas_dom_fer'].total_seconds() / 3600
+                e50_horas = extras_50_semana.total_seconds() / 3600
+                e100_horas = extras_100_semana.total_seconds() / 3600
+                print(f"  📊 Semana {num_semana} [DIÁRIO]: Total={total_horas:.2f}h | Dom/Fer={dom_fer_horas:.2f}h | 50%={e50_horas:.2f}h | 100%={e100_horas:.2f}h")
+        else:
+            # MODO SEMANAL (CLT tradicional): Compensa dentro da semana
+            # REGRA 2: Excedente real = total trabalhado - 44h
+            excedente = max(timedelta(0), dados['total'] - jornada_semanal)
+            
+            # REGRA 3: 50% = excedente - já contado como 100% (evita dupla contagem)
+            extras_50_semana = max(timedelta(0), excedente - extras_100_semana)
+            
+            # REGRA 4: Limite - 50% não pode exceder horas úteis trabalhadas
+            extras_50_semana = min(extras_50_semana, dados['horas_uteis'])
+            
+            if debug:
+                total_horas = dados['total'].total_seconds() / 3600
+                dom_fer_horas = dados['horas_dom_fer'].total_seconds() / 3600
+                e50_horas = extras_50_semana.total_seconds() / 3600
+                e100_horas = extras_100_semana.total_seconds() / 3600
+                print(f"  📊 Semana {num_semana} [SEMANAL]: Total={total_horas:.2f}h | Dom/Fer={dom_fer_horas:.2f}h | 50%={e50_horas:.2f}h | 100%={e100_horas:.2f}h")
         
         total_50 += extras_50_semana
         total_100 += extras_100_semana
@@ -1122,36 +1137,9 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
     escala_tipo = settings.get('escala_tipo', 'clt_5x2_padrao')  # Para ciclos
     data_inicio_escala = settings.get('data_inicio_escala')  # Para clt_12x36
     
-    # Inicializa variáveis de feriados
-    ano_detectado = datetime.now().year  # Ano atual
-    feriados_set = set()  # Conjunto de feriados
-    
-    print(f"[DATA] Ano base: {ano_detectado}")
-    
-    # --- SOBRESCRITA DE META PELA ESCALA (Enterprise Fix) ---
-    # Prioridade total para a definição do Catálogo, ignorando settings manuais se for padrão
-    meta_sobrescrita = False
-    if escala_tipo in CATALOGO_JORNADAS_CLT:
-        escala_info = CATALOGO_JORNADAS_CLT[escala_tipo]
-        # Se for 6x1 Comércio (440) ou 5x2 Padrão (480), força o valor correto
-        if escala_tipo == 'clt_6x1_com':
-            jornada_minutos = 440
-            meta_sobrescrita = True
-        elif escala_tipo == 'clt_5x2_padrao':
-            jornada_minutos = 480
-            meta_sobrescrita = True
-            
-        print(f"[ESCALA] Escala Ativa: {escala_info['nome']} | Meta Aplicada: {jornada_minutos}min {'(AUTO)' if meta_sobrescrita else ''}")
-
-    if noturno_ativo:
-        print(f"[NOTURNO] Adicional Noturno: ATIVO (redução Art. 73 aplicada)")
-
-    for feriado_str in feriados_str:
-        try:
-            dia, mes = map(int, feriado_str.split('/'))
-            feriados_set.add(date(ano_detectado, mes, dia))
-        except:
-            pass
+    # NOTA v6.2: ano_detectado e feriados_set são inicializados APÓS carregar os dados
+    # para usar o ano correto do arquivo, não o ano atual do sistema
+    feriados_str = settings.get('feriados', [])  # Guardamos para processar depois
             
     # Conversões de timedelta
     JORNADA_PADRAO = timedelta(minutes=jornada_minutos)
@@ -1185,6 +1173,38 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
     
     df_raw.drop_duplicates(inplace=True)
     df_raw['data'] = pd.to_datetime(df_raw['data'])
+    
+    # NOVO v6.2: Detecta ano a partir dos DADOS DO ARQUIVO, não do sistema
+    # Isso corrige o bug onde feriados de dezembro/2025 viravam janeiro/2026
+    ano_detectado = df_raw['data'].mode().iloc[0].year if not df_raw.empty else datetime.now().year
+    print(f"[DATA] Ano detectado dos dados: {ano_detectado}")
+    
+    # Converte feriados DD/MM para datas completas usando o ano dos dados
+    feriados_set = set()
+    for feriado_str in feriados_str:
+        try:
+            dia, mes = map(int, feriado_str.split('/'))
+            feriados_set.add(date(ano_detectado, mes, dia))
+        except:
+            pass
+    
+    if feriados_set:
+        print(f"[FERIADOS] {len(feriados_set)} feriado(s) configurado(s) para {ano_detectado}")
+    
+    # --- SOBRESCRITA DE META PELA ESCALA (Enterprise Fix) ---
+    meta_sobrescrita = False
+    if escala_tipo in CATALOGO_JORNADAS_CLT:
+        escala_info = CATALOGO_JORNADAS_CLT[escala_tipo]
+        if escala_tipo == 'clt_6x1_com':
+            jornada_minutos = 440
+            meta_sobrescrita = True
+        elif escala_tipo == 'clt_5x2_padrao':
+            jornada_minutos = 480
+            meta_sobrescrita = True
+        print(f"[ESCALA] Escala Ativa: {escala_info['nome']} | Meta: {jornada_minutos}min {'(AUTO)' if meta_sobrescrita else ''}")
+
+    if noturno_ativo:
+        print(f"[NOTURNO] Adicional Noturno: ATIVO (redução Art. 73 aplicada)")
     
     relatorio_diario = []
     todos_funcionarios = df_raw['nome'].unique()
@@ -1484,7 +1504,8 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
                 dados_semana[num_semana] = {
                     'horas_uteis': timedelta(0),
                     'horas_dom_fer': timedelta(0),
-                    'total': timedelta(0)
+                    'total': timedelta(0),
+                    'extras_50_acumulado': timedelta(0)  # NOVO v6.1: Para modo diário
                 }
             
             # Classificar horas: domingo/feriado vs dias úteis
@@ -1493,6 +1514,10 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
                 dados_semana[num_semana]['horas_dom_fer'] += total_trabalhado
             else:
                 dados_semana[num_semana]['horas_uteis'] += total_trabalhado
+                # NOVO v6.1: Acumula extras diárias (para modo 'diaria')
+                # Só acumula excedentes positivos, nunca faltas
+                if extras_comuns > timedelta(0):
+                    dados_semana[num_semana]['extras_50_acumulado'] += extras_comuns
             dados_semana[num_semana]['total'] += total_trabalhado
             
             # Monta registro para Excel (ESTRUTURA ATUALIZADA)
@@ -1554,20 +1579,23 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
         # Totais - NOVO v6.0: Apuração Semanal de Extras
         df_func = pd.DataFrame([r for r in relatorio_diario if r["Funcionário"] == funcionario])
         
-        # Lê configuração de regra de cálculo (default: semanal)
-        regra_extra = settings.get('regra_extra', 'semanal')
+        # Lê configuração de regra de cálculo (NOVO v6.1: extra_tipo)
+        # Compatibilidade: suporta tanto 'extra_tipo' (novo) quanto 'regra_extra' (legado)
+        extra_tipo = settings.get('extra_tipo', settings.get('regra_extra', 'semanal'))
         jornada_semanal_minutos = settings.get('jornada_semanal_minutos', 2640)  # 44h default
         
-        if regra_extra == 'semanal' and dados_semana:
-            # NOVO v6.0: Apuração semanal CLT (44h com compensação)
+        if dados_semana:
+            # v6.1: Apuração configurável (diária ou semanal)
             debug_mode = settings.get('debug_calculo', True)  # Default True para rollout
             
+            modo_label = "DIÁRIA" if extra_tipo == 'diaria' else "SEMANAL"
             if debug_mode:
-                print(f"\n📊 APURAÇÃO SEMANAL - {funcionario}")
+                print(f"\n📊 APURAÇÃO {modo_label} - {funcionario}")
             
             extras_50_total, extras_100_total = calcular_extras_semanal(
                 dados_semana, 
                 jornada_semanal_minutos,
+                extra_tipo=extra_tipo,  # NOVO v6.1
                 debug=debug_mode
             )
             
@@ -1612,11 +1640,11 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
             "extras_100": format_td(totals["Extras 100%"]).replace("+", ""),
             "saldo": format_td(saldo_final),
             "dias": dias_preview,
-            # CAMPOS v6.0 - Apuração Semanal CLT
-            "aviso_saldo": "Extras calculados com apuração semanal de 44h.",
+            # CAMPOS v6.1 - Apuração Configurável
+            "aviso_saldo": f"Extras calculados com apuração {'DIÁRIA (sem compensação)' if extra_tipo == 'diaria' else 'SEMANAL (44h CLT)'}.",
             "saldo_eh_informativo": True,
-            "versao_calculo": "v6.0-semanal-clt",
-            "regra_extra": regra_extra
+            "versao_calculo": "v6.1-configuravel",
+            "extra_tipo": extra_tipo
         })
         
     return relatorio_diario, resumo_preview, totais_semanais
