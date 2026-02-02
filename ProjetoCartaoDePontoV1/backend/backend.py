@@ -155,6 +155,22 @@ CATALOGO_JORNADAS_CLT = {
         },
         'sabado_util_automatico': True  # OBRIGATÓRIO para comércio
     },
+    'clt_6x1_padrao': {
+        'nome': '6x1 Padrão (44h)',
+        'tipo': 'Semanal',
+        'descricao': 'Segunda a sexta: 8h/dia, Sábado: 4h, Domingo: Folga DSR',
+        'meta_semana_minutos': 2640,
+        'metas_por_dia': {
+            0: 480,   # Segunda: 8h
+            1: 480,   # Terça: 8h
+            2: 480,   # Quarta: 8h
+            3: 480,   # Quinta: 8h
+            4: 480,   # Sexta: 8h
+            5: 240,   # Sábado: 4h (ÚTIL)
+            6: 0      # Domingo: DSR
+        },
+        'sabado_util_automatico': True  # Sábado é dia útil nesta escala
+    },
     'clt_5x1': {
         'nome': '5x1 (Ciclo)',
         'tipo': 'Cíclico',
@@ -357,6 +373,15 @@ def calcular_meta_dinamica_escala(escala_tipo: str, dia_semana_num: int, data_at
             return timedelta(minutes=0)
         else:  # Seg-Sab
             return timedelta(minutes=440)  # 7h20
+    
+    # 6x1 Padrão: 480 min (8h) Seg-Sex, 240 min (4h) Sab, 0 Domingo
+    elif escala_tipo == 'clt_6x1_padrao':
+        if dia_semana_num == 6:  # Domingo (DSR)
+            return timedelta(minutes=0)
+        elif dia_semana_num == 5:  # Sábado
+            return timedelta(minutes=240)  # 4h
+        else:  # Seg-Sex
+            return timedelta(minutes=480)  # 8h
     
     # 5x2 Compensado: 528 min (8h48) Seg-Sex, 0 Sab/Dom
     elif escala_tipo == 'clt_5x2_comp':
@@ -1387,8 +1412,11 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
                 # CRÍTICO v4.7: Ajusta meta_dia para ZERO em dias não úteis
                 # Isso evita que a fórmula Excel calcule faltas em domingos/feriados
                 if eh_feriado or (eh_domingo and not domingo_util):
+                    print(f"   🎄 FERIADO DETECTADO: {data_atual_obj} | extras_100={total_trabalhado}")
                     meta_dia = timedelta(0)  # ZERO meta em feriados/domingos não úteis
                     extras_100 = total_trabalhado
+                    extras_comuns = timedelta(0)  # BUGFIX v6.3: Zera explicitamente extras_comuns
+                    normais = timedelta(0)  # BUGFIX v6.3: Zera explicitamente normais
                     status = "Extra 100%" if total_trabalhado > timedelta(0) else "Feriado"
                 elif eh_sabado:
                     # HOTFIX v6.0: Sábado USA a meta da escala (7h20 para 6x1), NÃO 4h fixo
@@ -1397,6 +1425,8 @@ def calcular_relatorio(dados_brutos: List[dict], settings: dict, status_override
                     if not sabado_util and escala_tipo == 'clt_5x2_padrao':
                         meta_dia = timedelta(0)
                         extras_100 = total_trabalhado
+                        extras_comuns = timedelta(0)  # BUGFIX v6.3: Zera explicitamente
+                        normais = timedelta(0)  # BUGFIX v6.3: Zera explicitamente
                         status = "Extra 100%" if total_trabalhado > timedelta(0) else "Folga"
                     else:
                         # Sábado útil: usa meta_dia da escala (ex: 440min para 6x1)
@@ -1838,24 +1868,33 @@ def gerar_excel(relatorio_diario: List[dict], settings: dict = None, totais_sema
                 # L = Horas Extras 50%: MAX(0, Total - Meta)
                 # M = Horas Extras 100%: Calculado separadamente (DSR, feriados)
                 
-                # Coluna J: Horas Normais - FÓRMULA DINÂMICA
+                # Coluna J: Horas Normais - VALOR DO BACKEND v6.3
+                # Consistência: Usa cálculo CLT do backend que trata feriados/escalas corretamente
                 cell_normais = ws.cell(row=row_num, column=10)
-                cell_normais.value = f"=MIN(H{row_num},G{row_num})"  # MIN(Total, Meta)
+                valor_normais = row_data.get('Horas Normais', timedelta(0))
+                cell_normais.value = timedelta_to_excel_time(valor_normais)
                 cell_normais.number_format = '[h]:mm:ss'
                 cell_normais.alignment = Alignment(horizontal='center')
                 cell_normais.border = thin_border
                 
-                # Coluna K: Horas a Dever (Faltas) - FÓRMULA DINÂMICA
+                # Coluna K: Horas a Dever (Faltas) - VALOR DO BACKEND v6.3
+                # Consistência: Usa cálculo CLT do backend que trata abonos/atestados corretamente
                 cell_faltas = ws.cell(row=row_num, column=11)
-                cell_faltas.value = f"=MAX(0,G{row_num}-H{row_num})"  # MAX(0, Meta - Total)
+                valor_faltas = row_data.get('Horas a Dever', timedelta(0))
+                cell_faltas.value = timedelta_to_excel_time(valor_faltas)
                 cell_faltas.number_format = '[h]:mm:ss'
                 cell_faltas.alignment = Alignment(horizontal='center')
                 cell_faltas.border = thin_border
                 cell_faltas.font = Font(color='C0392B', bold=True)  # Vermelho para faltas
                 
-                # Coluna L: Horas Extras 50% - FÓRMULA DINÂMICA
+                # Coluna L: Horas Extras 50% - FÓRMULA CORRIGIDA v6.3 (Anti-Duplicação)
+                # BUG FIX: Quando Meta=0 (feriado/domingo), a fórmula antiga contava
+                # todo o tempo trabalhado como 50%, mesmo já estando na coluna 100%.
+                # SOLUÇÃO: Subtrai o valor de 100% para evitar dupla contagem.
+                # Fórmula: MAX(0, Total - Meta - Extras100)
                 cell_extra50 = ws.cell(row=row_num, column=12)
-                cell_extra50.value = f"=MAX(0,H{row_num}-G{row_num})"  # MAX(0, Total - Meta)
+                valor_extra50 = row_data.get('Horas Extras (Comum)', timedelta(0))
+                cell_extra50.value = timedelta_to_excel_time(valor_extra50)  # Usa valor do backend
                 cell_extra50.number_format = '[h]:mm:ss'
                 cell_extra50.alignment = Alignment(horizontal='center')
                 cell_extra50.border = thin_border
