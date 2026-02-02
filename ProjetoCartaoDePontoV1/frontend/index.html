@@ -537,7 +537,8 @@
                             class="w-full bg-dark-bg border border-dark-border rounded-lg p-2.5 text-white text-sm focus:border-brand-500">
                             <option value="clt_5x2_padrao">5x2 Padrão (44h)</option>
                             <option value="clt_5x2_comp">5x2 Compensado</option>
-                            <option value="clt_6x1_com">6x1 Comércio</option>
+                            <option value="clt_6x1_com">6x1 Comércio (7h20)</option>
+                            <option value="clt_6x1_padrao">6x1 Padrão (8h + 4h sáb)</option>
                             <option value="clt_5x1">5x1 (Ciclo)</option>
                             <option value="clt_12x36">12x36 (Plantão)</option>
                             <option value="estagio_6h">Estágio 6h</option>
@@ -849,8 +850,14 @@
                 sabado_util_automatico: false // Usuário controla
             },
             'clt_6x1_com': {
-                nome: '6x1 Comércio',
+                nome: '6x1 Comércio (7h20)',
                 meta_diaria_min: 440,
+                sabado_util_automatico: true  // Sábado útil é AUTOMÁTICO nesta escala
+            },
+            'clt_6x1_padrao': {
+                nome: '6x1 Padrão (8h + 4h sáb)',
+                meta_diaria_min: 480,  // Meta principal seg-sex
+                meta_sabado_min: 240,  // Meta sábado
                 sabado_util_automatico: true  // Sábado útil é AUTOMÁTICO nesta escala
             },
             'clt_12x36': {
@@ -1270,6 +1277,7 @@
                 'clt_5x2_padrao': 480,   // 8h
                 'clt_5x2_comp': 528,     // 8h48
                 'clt_6x1_com': 440,      // 7h20
+                'clt_6x1_padrao': 480,   // 8h (seg-sex), 4h sab gerenciado pelo backend
                 'clt_5x1': 480,          // 8h (ciclo)
                 'clt_12x36': 720,        // 12h
                 'estagio_6h': 360,       // 6h
@@ -1343,10 +1351,12 @@
             let escalaDescricao = "";
             switch (currentSettings.escala_tipo) {
                 case 'clt_5x2_padrao': escalaDescricao = "5x2 Padrão (44h)"; break;
-                case 'clt_6x1_com': escalaDescricao = "6x1 Comércio (44h)"; break;
+                case 'clt_6x1_com': escalaDescricao = "6x1 Comércio (7h20)"; break;
+                case 'clt_6x1_padrao': escalaDescricao = "6x1 Padrão (8h+4h)"; break;
                 case 'clt_5x2_comp': escalaDescricao = "5x2 Compensado (44h)"; break;
                 case 'clt_12x36': escalaDescricao = "12x36 Plantão"; break;
                 case 'clt_parcial_30h': escalaDescricao = "Parcial 30h"; break;
+                case 'estagio_6h': escalaDescricao = "Estágio 6h"; break;
                 default: escalaDescricao = "Personalizada";
             }
 
@@ -1388,6 +1398,7 @@
                 else if (tipo === 'clt_5x2_padrao') jornadaSelect.value = '480'; // 8h
                 else if (tipo === 'clt_5x2_comp') jornadaSelect.value = '528';   // 8h48
                 else if (tipo === 'clt_6x1_com') jornadaSelect.value = '440';    // 7h20
+                else if (tipo === 'clt_6x1_padrao') jornadaSelect.value = '480'; // 8h (sab 4h gerenciado pelo backend)
                 else if (tipo === 'clt_5x1') jornadaSelect.value = '480';        // 8h (ciclo)
                 else if (tipo === 'estagio_6h') jornadaSelect.value = '360';     // 6h
 
